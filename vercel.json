@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "framework": null,
-  "functions": {
-    "api/**/*.py": {
-      "runtime": "python@3.12"
-    }
-  },
   "routes": [
     {
       "src": "/api/v1/package/(.*)",
@@ -40,6 +34,10 @@
       "headers": {
         "Content-Type": "text/plain"
       }
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/public/assets/$1"
     },
     {
       "src": "/(.*)",
