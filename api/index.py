@@ -41,12 +41,24 @@ class handler(BaseHTTPRequestHandler):
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
 
-        # Check for query parameters (used by Vercel routes)
+        # Header detection for Vercel edge matched path
+        matched_path = (
+            self.headers.get("x-matched-path")
+            or self.headers.get("x-vercel-matched-path")
+            or self.headers.get("x-forwarded-uri")
+            or path
+        )
+        if "?" in matched_path:
+            matched_path = matched_path.split("?")[0]
+
         package_param = query.get("package", [None])[0]
         skill_param = query.get("skill", [None])[0]
 
         # 0. Static assets and Landing Page
-        if path in {"", "/", "/index.html"}:
+        if (
+            matched_path in {"", "/", "/index.html"}
+            or (path == "/api/index.py" and not package_param and not skill_param and not matched_path.startswith("/api/"))
+        ):
             html_file = REPO_ROOT / "public" / "index.html"
             if html_file.is_file():
                 content = html_file.read_bytes()
@@ -59,8 +71,8 @@ class handler(BaseHTTPRequestHandler):
                     self.wfile.write(content)
                 return
 
-        if path.startswith("/public/") or path.startswith("/assets/"):
-            rel = path.lstrip("/")
+        if matched_path.startswith("/public/") or matched_path.startswith("/assets/"):
+            rel = matched_path.lstrip("/")
             file_path = REPO_ROOT / rel
             if not file_path.is_file():
                 file_path = REPO_ROOT / "public" / rel.replace("public/", "")
@@ -76,11 +88,11 @@ class handler(BaseHTTPRequestHandler):
                     self.wfile.write(content)
                 return
 
-        if path in {"/install.sh", "/install.ps1"}:
-            script_file = REPO_ROOT / path.lstrip("/")
+        if matched_path in {"/install.sh", "/install.ps1"}:
+            script_file = REPO_ROOT / matched_path.lstrip("/")
             if script_file.is_file():
                 content = script_file.read_bytes()
-                mime = "text/x-shellscript" if path.endswith(".sh") else "text/plain"
+                mime = "text/x-shellscript" if matched_path.endswith(".sh") else "text/plain"
                 self.send_response(200)
                 self._send_cors_headers()
                 self.send_header("Content-Type", f"{mime}; charset=utf-8")
@@ -91,8 +103,8 @@ class handler(BaseHTTPRequestHandler):
                 return
 
         # 1. Package Download Endpoint
-        if package_param or path.startswith("/api/v1/package/"):
-            skill_name = package_param or path.split("/")[-1].replace(".skill", "")
+        if package_param or matched_path.startswith("/api/v1/package/"):
+            skill_name = package_param or matched_path.split("/")[-1].replace(".skill", "")
             skill_dir = REPO_ROOT / "skills" / skill_name
             if not skill_dir.is_dir() or not (skill_dir / "SKILL.md").is_file():
                 self.send_response(404)
@@ -135,15 +147,15 @@ class handler(BaseHTTPRequestHandler):
         # 2. Individual Skill Detail Endpoint
         if (
             skill_param
-            or path.startswith("/api/v1/skills/")
-            or (path.startswith("/api/skills/") and path != "/api/skills")
+            or matched_path.startswith("/api/v1/skills/")
+            or (matched_path.startswith("/api/skills/") and matched_path != "/api/skills")
         ):
             skill_name = (
                 skill_param
                 or (
-                    path.split("/api/v1/skills/")[-1]
-                    if "/api/v1/skills/" in path
-                    else path.split("/api/skills/")[-1]
+                    matched_path.split("/api/v1/skills/")[-1]
+                    if "/api/v1/skills/" in matched_path
+                    else matched_path.split("/api/skills/")[-1]
                 )
             ).strip("/")
             detail = get_skill_detail(skill_name, REPO_ROOT)
