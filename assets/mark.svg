@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Skill Conductor mark</title>
+  <desc id="desc">A compact conductor baton and four aligned skill nodes</desc>
+  <rect width="512" height="512" rx="112" fill="#171717"/>
+  <g fill="none" stroke="#F5F5F2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M128 344L342 130" stroke-width="34"/>
+    <path d="M119 353l40 40" stroke-width="34"/>
+    <circle cx="336" cy="176" r="34" stroke-width="24"/>
+    <circle cx="282" cy="230" r="28" stroke-width="22"/>
+    <circle cx="228" cy="284" r="22" stroke-width="20"/>
+  </g>
+</svg>
