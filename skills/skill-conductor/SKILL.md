@@ -1,476 +1,541 @@
 ---
 name: skill-conductor
 description: >
-  Create, edit, evaluate, and package agent skills. Use when building a new
-  skill from scratch, improving an existing skill, fixing a skill that never
-  triggers or fires unreliably, running evals to test a skill, benchmarking
-  skill performance, optimizing a skill's description, reviewing third-party
-  skills for quality, or packaging skills for distribution — even if the user
-  doesn't explicitly say "skill" (e.g. "teach Claude to do X", "make the
-  agent always follow Y"). Not for using skills or general coding
-  tasks.
+  Design, repair, evaluate, port, and package agent skills across ChatGPT,
+  Codex, Claude Code, and other Agent Skills-compatible hosts. Use when a user
+  wants a new reusable skill, wants an existing skill made more reliable,
+  needs trigger or behavior evals, wants a skill adapted to another agent, or
+  needs a distributable skill/plugin package. Not for ordinary prompt writing,
+  general coding tasks, or simply using an existing skill.
 ---
 
 # Skill Conductor
 
-Full lifecycle management for agent skills: **draft → test → review → improve → repeat**.
+Build skills as tested behavioral artifacts, not polished prompt files.
 
-One skill to rule them all — from architecture to packaging. The core loop is always the same: write something, test it, see what fails, fix it, test again.
+The invariant is:
 
-## Runtime requirements (pre-flight)
+**failure evidence -> SkillSpec -> host contract -> implementation -> evals -> gate -> package**
 
-Before any mode that touches scripts (CREATE, IMPROVE, VALIDATE, OPTIMIZE, PACKAGE), run the pre-flight block → **`references/runtime-setup.md`** (checks `uv`, sets `UV_BIN`/`SKILL_CONDUCTOR_DIR`, verifies LLM access). If `uv` is absent, stop and tell the user.
+Do not claim a skill is portable or production-ready until the target host was identified and the applicable gates were actually run.
 
-## How to communicate
+## Start here
 
-Read context cues. If the user is a skill author iterating on their own work, be direct and technical. If they're new to skills, explain the _why_ behind each step — not just what to do, but why it matters. Default to conversational, not robotic.
+For every request, establish these four facts before editing:
 
-- Explain trade-offs when there's a real choice to make
-- Use concrete examples over abstract rules
-- When something fails, explain the root cause, not just the fix
-- Imperative voice in instructions: "Extract the data", not "You should extract"
+1. **Job**: the repeatable task the skill must improve
+2. **Failure**: what the target agent does wrong without the skill
+3. **Host**: where the skill must run
+4. **Evidence**: how success and non-trigger behavior will be checked
 
-## Modes
+If the host is unspecified, target the Agent Skills baseline and mark host-specific behavior as unresolved rather than inventing it.
 
-Detect mode from context. If ambiguous, ask.
+Read only what the mode needs:
 
-| Mode        | When                                             | What happens                                                    |
-| ----------- | ------------------------------------------------ | --------------------------------------------------------------- |
-| 1. CREATE   | "build a skill", "new skill for..."              | Full lifecycle: intent → architecture → scaffold → write → test |
-| 2. IMPROVE  | "fix this skill", "it doesn't trigger"           | Diagnose → eval loop → gated self-update → iterate              |
-| 3. VALIDATE | "test this skill", "run evals"                   | Structural checks + trigger testing + BinEval scoring           |
-| 4. REVIEW   | "review this skill", third-party assessment      | 11-point quality gate, quick and focused                        |
-| 5. OPTIMIZE | "improve triggering", "description optimization" | Automated description optimization with train/test split        |
-| 6. PACKAGE  | "package for distribution"                       | Validate + bundle into .skill file                              |
+- `references/skill-spec.md` for CREATE, IMPROVE, or PORT
+- `references/host-profiles.md` when selecting or adapting a host
+- `references/sop-practices.md` before authoring or reviewing skill instructions
+- `references/pressure-testing.md` for wording micro-tests and discipline skills
+- `references/bineval-method.md` and `references/quality-questions.md` for scoring
+- `references/cross-host-evaluation.md` for multi-host evidence
+- `references/runtime-setup.md` before executing scripts or runners
 
----
+## Mode router
 
-## Mode 1: CREATE
+| Mode | Use when | Primary result |
+| --- | --- | --- |
+| CREATE | build a new skill | SkillSpec + implementation + eval set |
+| IMPROVE | existing skill is weak or unreliable | smallest evidence-backed edits |
+| VALIDATE | test a skill | structural, discovery, behavior, and portability evidence |
+| REVIEW | assess a third-party skill | pass/fail risks before installation |
+| OPTIMIZE | trigger wording is the main problem | held-out description candidate |
+| PORT | adapt a skill to another agent/host | target-host variant + gap report |
+| PACKAGE | distribute the result | standalone skill or host plugin package |
 
-### Step 1: Capture Intent
+If several modes are requested, run them in this order:
 
-Before writing anything, extract 2–3 concrete scenarios.
+**CREATE/IMPROVE -> PORT -> VALIDATE -> PACKAGE**
 
-Ask:
+## Internal skill routing
 
-- "What specific task should this skill handle?"
-- "What would a user say to trigger it?"
-- "What should NOT trigger it?"
+`skill-conductor` is the public orchestrator. The helper skills below do not replace its design method.
 
-Don't move on until you have a clear picture of what the skill does, for whom, and when. This prevents the most common failure: a skill that does _something_ but triggers for the wrong things.
+| Helper skill | Activate when | Return control when |
+| --- | --- | --- |
+| `host-workspace-operator` | the workflow must inspect, search, patch, write, or verify repository/workspace files | the required workspace evidence or mutation is complete |
+| `sandbox-python-executor` | compilation, parsing, archive inspection, hashing, or validation benefits from deterministic Python | execution evidence is captured |
 
-### Step 2: Baseline (TDD RED)
+Route by capability rather than by a hard-coded tool name. A host may expose equivalent read, search, patch, shell, or Python operations under different names.
 
-Before writing the skill, verify the agent fails without it:
+Do not activate either helper for pure design reasoning when no workspace or deterministic execution is needed.
 
-1. Take one scenario from Step 1
-2. Run it in a clean session without the skill
-3. Document what went wrong — what the agent guessed, what it missed
+## Universal SkillSpec
 
-If the agent already handles it perfectly, the skill is unnecessary. This sounds obvious, but it's the most skipped step and the most valuable one.
+Never start by free-writing `SKILL.md` for a non-trivial skill.
 
-### Step 3: Architecture
+Create a SkillSpec first. Use `references/skill-spec.md`.
 
-Choose a primary pattern from `references/patterns.md` (can combine):
+At minimum capture:
 
-| Pattern                 | Use when                                 |
-| ----------------------- | ---------------------------------------- |
-| Sequential workflow     | clear step-by-step process               |
-| Iterative refinement    | output improves with cycles              |
-| Context-aware selection | same goal, different tools by context    |
-| Domain intelligence     | specialized knowledge beyond tool access |
-| Multi-MCP coordination  | workflow spans multiple services         |
+- name and purpose
+- user language that should trigger
+- near-miss language that should not trigger
+- baseline failure evidence
+- required outputs
+- invariants and forbidden behavior
+- workflow steps
+- freedom level per step
+- required tools/resources
+- target hosts
+- positive, negative, and pressure evals
+- acceptance gates
 
-Choose degrees of freedom — this determines how much control vs. flexibility the skill gives the agent:
-
-| Freedom             | When                                        | Example                 |
-| ------------------- | ------------------------------------------- | ----------------------- |
-| Low (scripts)       | fragile, error-prone, must be exact         | PDF rotation, API calls |
-| Medium (pseudocode) | preferred pattern exists, some variation ok | data processing         |
-| High (text)         | multiple valid approaches, judgment needed  | design decisions        |
-
-**Freedom test:** ask "if the agent makes a mistake here, what is the consequence?" High consequence → low freedom (an exact script it must not modify). Low consequence → high freedom (prose, let it judge). Calibrate per step, not per skill — one skill can hold both.
-
-**Golden rule: read `references/sop-practices.md` before authoring or reviewing ANY skill.** It holds the canonical **10 authoring principles** (universal): pre-flight, no-process-in-description, MOC (SKILL.md = map, not prose), fresh-practitioner author, TWI "why", blind-agent test, inline checklists, one-term-per-concept, cut-the-fat (env/keys OUT of SKILL.md), match-the-form-to-the-failure. For **procedural** skills (business process with branching: request, quote, onboarding, escalation) the same file also has the deep SOP methodology — format selection, 7-step process, procedural checklist.
-
-### Step 4: Scaffold
+When deterministic generation is useful, run:
 
 ```bash
-uv run scripts/init_skill.py <skill-name> --path <output-dir> [--resources scripts,references,assets]
+python3 scripts/compile_skill_spec.py --spec <spec.json> --out <skill-dir>
 ```
 
-Or create manually:
+The compiler is a scaffold, not a substitute for judgment. Review the generated instructions against the failure evidence and host contract.
 
-```
-skill-name/
-├── SKILL.md          # required — the brain
-├── scripts/          # deterministic operations (executed, not loaded)
-├── references/       # detailed docs (loaded on demand)
-└── assets/           # templates, images for output (never loaded)
-```
+## Host contract
 
-### Step 5: Write SKILL.md
+Use `references/host-profiles.md`.
 
-#### Frontmatter
+Treat host support as a capability contract, not a brand name. Record:
 
-```yaml
----
-name: kebab-case-name
-description: >
-  [What it does]. Use when [4-5 phrasing variations users actually say] — even
-  if they don't explicitly say "[canonical term]". Do NOT use for [negatives].
----
-```
+- discovery mechanism
+- skill/package layout
+- metadata/frontmatter requirements
+- read/list/search/grep availability
+- write/patch boundary
+- shell and Python availability
+- subagent support
+- external network behavior
+- confirmation/approval behavior
+- observable trigger evidence
+- packaging/install path
 
-The description is the single most important line — it decides whether the skill triggers at all. The full formula, the pushy clause and worked GOOD/BAD examples live in `references/sop-practices.md` Principle #2. Read it before writing one.
+Known profiles in this repository:
 
-- `name`: lowercase, digits, hyphens only. No consecutive hyphens. Matches folder name. Max 64 chars
-- `description`: max 1024 chars. No angle brackets. No process/workflow steps
-- **Don't put workflow in the description** — tested: when the description lists process steps, the agent follows it and skips the body entirely
+- Agent Skills baseline
+- ChatGPT
+- Codex
+- Claude Code
+- Custom/unknown host
 
-#### Body structure
+When the host is unknown, use the baseline format and produce a gap list. Do not fabricate host-specific manifest fields or tool names.
 
-```markdown
-# Skill Name
+## CREATE
 
-## Overview
+### 1. Prove the baseline failure
 
-What this enables. 1-2 sentences. Core principle.
+Use at least one realistic scenario without the skill.
 
-## [Main sections]
+Record what failed:
 
-Step-by-step with numbered sequences.
-Concrete templates over prose.
-Imperative voice throughout.
+- discovery
+- missing domain knowledge
+- wrong sequence
+- skipped verification
+- inconsistent formatting
+- unsafe or over-broad action
+- tool misuse
+- unnecessary context/time
 
-## Common Mistakes
+If the agent already succeeds reliably, do not add a skill merely to create one.
 
-What goes wrong + how to fix.
+### 2. Write the SkillSpec
 
-## Troubleshooting (if applicable)
+Use realistic user language, not taxonomy labels.
 
-Error: [message] → Cause: [why] → Fix: [how]
-```
+Require at least:
 
-#### Writing rules
+- 3 positive trigger examples
+- 2 near-miss negatives
+- 1 pressure/adversarial case when the skill enforces discipline
+- concrete expected outputs
+- explicit stop/fallback behavior
 
-- **One term per concept.** Pick "template" and stick with it — not template/boilerplate/scaffold (Principle 8)
-- **SKILL.md = map, not prose.** Body is a table-of-contents pointing to references; detail lives there (Principle 3)
-- **No secrets/env in SKILL.md.** No keys, passwords, tokens, env values, or user-absolute paths (`/home/<user>`, `/Users/<user>`) — reference them, never inline (Principle 9a)
-- **Progressive disclosure.** SKILL.md = brain (<500 lines). References = details. One level deep
-- **Token budget.** Frequently loaded: <200 words. Standard: <500 lines. Heavy: move to references/
-- **No junk files.** No README, CHANGELOG inside the skill
-- **Scripts:** bundle when same code rewritten repeatedly, or operation is fragile. Must return descriptive stdout/stderr on failure
-- **Imperative voice.** Use "Extract the data", not "you should extract" or capitalized "MUST/NEVER" — explanation > rule (see `references/sop-practices.md` Principle 5, TWI)
+### 3. Choose architecture and freedom
 
-### Step 6: Test Cases & Eval Loop
+Read `references/patterns.md`.
 
-This is the critical step — most failures hide here. Treat it as three sub-phases.
+Select the primary pattern:
 
-Before the full loop, micro-test the wording of anything you just wrote (5+ fresh-context reps, always with a no-guidance control) → `references/pressure-testing.md`. For a discipline skill — one that makes the agent follow a rule it's tempted to break — a pressure scenario from that file is mandatory, not optional.
+| Pattern | Use when |
+| --- | --- |
+| Sequential | ordering is the main source of reliability |
+| Iterative refinement | output improves through bounded cycles |
+| Context-aware selection | the same job needs different paths by context |
+| Domain intelligence | specialized knowledge is the missing capability |
+| Multi-tool coordination | the job spans multiple services/capability families |
 
-#### 6a. Pre-flight (before spawning anything)
+Set freedom per step, not once for the whole skill:
 
-- [ ] `evals/evals.json` exists with 3–5 prompts (see `references/schemas.md`)
-- [ ] Workspace dir created: `<skill-name>-workspace/iteration-1/`
-- [ ] Each eval has a descriptive name (not just `eval-0`) and `eval_metadata.json`
-- [ ] Anthropic key for executor subagents is set
-- [ ] `uv` and `eval-viewer/generate_review.py` are reachable from current working dir
+- **low**: exact operation, high consequence, deterministic implementation preferred
+- **medium**: preferred method with bounded judgment
+- **high**: many valid approaches, low consequence of variation
 
-If any item fails — fix before proceeding. A missing workspace dir mid-run loses outputs.
+Ask: **what happens if the agent improvises here?** The larger the consequence, the lower the freedom.
 
-#### 6b. Run loop (do all in one turn)
+### 4. Author with progressive disclosure
 
-| What | Key move | Why |
-|---|---|---|
-| Spawn with-skill runs | One subagent per eval, skill active, save outputs to `iteration-N/<eval-name>/with_skill/` | Parallel = same wall time as one run |
-| Spawn baseline runs in the same turn | Same prompt, no skill (or old version snapshot for IMPROVE), save to `without_skill/` or `old_skill/` | If you wait, baselines drift in time and aren't comparable |
-| Draft assertions while runs execute | Pull verifiable statements from eval prompts | Don't waste the 5–15 min of subagent time |
-| Capture timing on each notification | Save `total_tokens`, `duration_ms` to `timing.json` immediately | Notification is the only source — process per-arrival, don't batch |
+Read `references/sop-practices.md`.
 
-#### 6c. Post-run checklist
+Keep:
 
-- [ ] All `timing.json` files written (one per run)
-- [ ] Each run has a `grading.json` with fields `text`, `passed`, `evidence` (not `name`/`met`)
-- [ ] `benchmark.json` aggregated: `uv run scripts/aggregate_benchmark.py <workspace>/iteration-N --skill-name <name>`
-- [ ] Analyst pass done — see `agents/analyzer.md` for what to look for (non-discriminating assertions, high-variance evals, time/token tradeoffs)
-- [ ] Eval viewer launched: `uv run eval-viewer/generate_review.py <workspace> --skill-name <name> --benchmark <path>`
-  - In headless mode: `--static <output.html>` and send file to user
-  - For iteration 2+: add `--previous-workspace <previous-iteration-path>`
-- [ ] User saw the viewer **before** I started editing the skill
+- frontmatter focused on discovery, not the workflow
+- `SKILL.md` as the routing map and core method
+- detailed knowledge in `references/`
+- fragile repeatable operations in `scripts/`
+- output templates and non-instruction assets in `assets/`
 
-The last bullet is the trap. If you skip user review and "improve" based on your own reading of outputs, you optimize against your taste, not the user's.
+Use one term per concept. Explain why high-risk rules exist. Put checks at the point of failure, not only at the end.
 
-### Step 7: Verify & Refactor
+Do not copy host-specific paths, CLI names, or approval assumptions into universal instructions unless the SkillSpec explicitly targets that host.
 
-1. Does the skill trigger automatically for the right queries?
-2. Does the agent follow body instructions (not just description)?
-3. Does the output meet use case requirements?
-4. Does it NOT trigger on unrelated queries?
+### 5. Build evals before polishing
 
-If any fail → iterate. Find how the agent rationalizes around the skill, plug loopholes, re-verify.
+Create eval families:
 
----
+1. direct intended prompts
+2. indirect intended prompts
+3. near-miss negatives
+4. behavior assertions
+5. pressure cases when applicable
+6. cross-host cases for every claimed target
 
-## Mode 2: IMPROVE
+The skill is not done because the prose looks complete.
 
-### Step 1: Diagnose
+### 6. Implement and run the gate
 
-Read the existing SKILL.md completely. Identify the problem class:
+Use the current host's actual capabilities.
 
-| Problem             | Signal                      | Fix                                                      |
-| ------------------- | --------------------------- | -------------------------------------------------------- |
-| Undertriggering     | skill doesn't load          | add keywords, trigger phrases, file types to description |
-| Overtriggering      | loads for unrelated queries | add negative triggers, be more specific                  |
-| Skips body          | follows description only    | remove process/workflow from description                 |
-| Inconsistent output | varies across sessions      | add explicit templates, reduce freedom, add scripts      |
-| Too slow            | large context               | move detail to references/, cut body to <500 lines       |
-
-### Improvement mindset
-
-1. **Generalize from feedback.** You're iterating on a few examples, but the skill will be used on thousands of prompts. Don't overfit — avoid fiddly patches or oppressive MUSTs for one test case. Try different metaphors or patterns instead
-2. **Keep the prompt lean.** Read transcripts, not just outputs. If the skill makes the model waste time on unproductive steps, remove those instructions and see what happens
-3. **Explain the why.** LLMs have good theory of mind. Instead of ALWAYS/NEVER in caps, explain the reasoning — it's more powerful and robust. If you're writing rigid rules, reframe as explanations
-4. **Look for repeated work.** If all test runs independently write the same helper script, bundle it in `scripts/`. Saves every future invocation from reinventing the wheel
-5. **Apply the authoring canon.** Read `references/sop-practices.md` — the 10 canonical principles (universal) map directly to skill failure modes: process leaking into description, SKILL.md bloated instead of a map, env/keys inlined, silent improvisation from missing "why", missed edge cases, agents skipping end-of-doc checklists, a rule whose form doesn't match its failure. For process skills (ticket, quote, escalation) also apply the deep SOP methodology in the same file
-
-### Step 2: Eval Iteration Loop
-
-The improvement cycle mirrors CREATE Step 6, but focused on the broken behavior. Micro-test each candidate wording before it enters the loop, and re-run the pressure scenarios if the skill enforces a rule → `references/pressure-testing.md`.
-
-1. Run the failing case with current skill → document failure
-2. Apply fix using writing rules from CREATE Step 5
-3. Run eval again → grade with `agents/grader.md`
-4. Launch viewer: `uv run eval-viewer/generate_review.py <workspace>`
-   - **Headless/Cowork:** use `--static <output.html>` instead of live server
-5. Review, provide feedback, iterate
-
-### Step 3: Gated Self-Update Loop
-
-Drive iteration off failing BinEval questions, not taste — and accept edits only against evidence the editor never saw. Full rules: `references/bineval-method.md` § Gated self-update loop.
-
-1. **Freeze the split once per session:** `uv run scripts/split_evals.py evals/evals.json --holdout 0.4 --write <workspace>/split.json` — deterministic, stratified by the optional per-eval `category`. Never re-split after seeing results
-2. Run ALL evals on the current version and grade (see Mode 3 Stage 3 + `references/bineval-method.md`) → collect `failing[]`
-3. Analyze failures on TRAIN cases only: spawn `agents/analyzer.md` with train transcripts + gradings to produce generalized, deduped lessons. Held-out grading stays unopened until the gate
-4. Apply **at most 3 atomic edits** (add/delete/replace one rule, paragraph, or table row; one edit = one lesson, labeled). No wholesale rewrites — small diffs keep cause and effect attributable at the gate
-5. Re-run ALL evals. **Gate — accept iff:** (a) no held-out assertion flips pass→fail vs the parent (a flip counts only once it reproduces in 2 consecutive runs — single runs are noisy); (b) train pass-rate strictly improves; (c) no NEW failing critical question. Held-out improvement is welcome but not required — with 5–8 held-out cases, demanding it measures luck
-6. Record per-assertion transitions (improved / regressed / persistent-fail / stable-success) → `transitions` block in benchmark.json
-7. Terminate when train `failing[]` (or its critical subset) is empty, or after 3 iterations. Keep the best ACCEPTED version by held-out pass-rate, then train pass-rate
-
-### Step 3b: Blind Comparison (optional, for major changes)
-
-When you have two meaningfully different versions:
-
-1. Run both versions on the same evals
-2. Spawn `agents/comparator.md` — answers the SAME binary questions for outputs A and B without knowing which skill produced which
-3. Comparator reports per-dimension yes-rate for each version; winner = higher overall yes-rate, tiebreak = critical-dimension yes-rate
-4. Spawn `agents/analyzer.md` — unblinds results, analyzes WHY the winner won
-5. Apply insights to improve the losing version
-
-This prevents bias. The comparator judges output quality, not skill design.
-
----
-
-## Mode 3: VALIDATE
-
-Three stages, run in order.
-
-### Stage 1: Structural Validation
+For static compilation:
 
 ```bash
-uv run scripts/eval_skill.py <skill-folder>
+python3 scripts/compile_skill_spec.py --spec <spec.json> --out <output-dir>
 ```
 
-Checks: frontmatter, naming, description quality, process leak detection, body size, structure, scripts. Target: 10/10, no warnings.
-
-### Stage 2: Discovery (trigger testing)
-
-Generate 6 test prompts:
-
-- 3 that SHOULD trigger the skill
-- 3 that should NOT (similar-sounding but wrong domain)
-
-Run each in clean session. Target: 6/6 correct.
-
-For automated trigger testing at scale, use:
+For structural and portability checks:
 
 ```bash
-uv run scripts/run_eval.py --eval-set <path> --skill-path <path> --runs-per-query 3
+python3 scripts/validate_portability.py <skill-dir> --targets <comma-separated-hosts>
 ```
 
-### Stage 3: BinEval Scoring
+For provider-specific dynamic runners, follow `references/runtime-setup.md` and label their evidence by host.
 
-Evaluate with atomic binary yes/no questions across 5 dimensions — each answered 1/0 after a written critique citing evidence. See `references/bineval-method.md` for the method, `references/quality-questions.md` for the question bank, and `agents/bineval.md` for the evaluator that emits `bineval.json`.
+### 7. Refactor after evidence
 
-The 5 dimensions: **Discovery, Clarity, Structure, Robustness, Completeness**.
+Only change instructions in response to a demonstrated failure or an identified host gap.
 
-Questions for the skill-artifact come from two sources (`question_source: "hybrid"`):
+Prefer the smallest change that fixes the failure. Re-run the relevant positive, negative, held-out, and pressure cases.
 
-- **Deterministic** — emitted by `scripts/eval_skill.py --json` (the sole emitter), e.g. `DET-STRUCT-SKILLMD-EXISTS`, `DET-DISCOVERY-DESC-PRESENT`. Some are flagged critical.
-- **Fixed bank** — the versioned llm questions in `references/quality-questions.md`; the judge answers them, never invents its own. (Generated per-task questions via the two-step meta-prompt belong to output grading in Modes 1–2, `agents/grader.md` — not to artifact scoring.)
+## IMPROVE
 
-The judge only answers the questions. YOU aggregate: per-dimension `dimension_scores` S_d = mean of that dimension's answers; overall S = mean of all answers. Never put the bands or the GATE into a judge prompt — a judge that knows the bar is biased toward it (`references/bineval-method.md`).
+### 1. Diagnose the failure class
 
-**Display bands:** S≥0.90 production-ready · 0.70–0.89 solid · 0.50–0.69 needs-work · <0.50 rewrite.
+Read the entire existing skill and map failures to one or more classes:
 
-**GATE** = every critical question (deterministic + critical bank questions) answered 1. The GATE is the pass criterion — not the scalar S.
+| Failure | Typical signal |
+| --- | --- |
+| Undertriggering | intended query never loads the skill |
+| Overtriggering | adjacent tasks load the skill |
+| Body bypass | model acts from metadata and skips instructions |
+| Knowledge gap | instructions do not contain the missing expertise |
+| Sequence gap | agent knows the pieces but performs them in the wrong order |
+| Freedom mismatch | fragile step is left open-ended |
+| Tool mismatch | instructions assume unavailable host capabilities |
+| Packaging mismatch | skill is valid but host cannot discover/install it |
+| Context bloat | useful behavior is buried in excessive loaded text |
 
----
+Do not rewrite the whole skill before knowing which class failed.
 
-## Mode 4: REVIEW
+### 2. Reconstruct the SkillSpec
 
-Quick quality gate for third-party skills.
+If the skill has no SkillSpec, infer one from the artifact and observed behavior. Mark inferred fields as such.
 
-### Checklist (pass/fail)
+Separate:
 
-```
-[ ] SKILL.md exists, exact case
-[ ] Valid YAML frontmatter (name + description)
-[ ] name: kebab-case, matches folder, ≤64 chars
-[ ] description: ≤1024 chars, no angle brackets
-[ ] description has triggers ("Use when...")
-[ ] description has NO workflow/process steps
-[ ] No README.md inside skill folder
-[ ] SKILL.md < 500 lines
-[ ] References max 1 level deep
-[ ] Scripts tested and executable
-[ ] No hardcoded paths/tokens/secrets
-```
+- intended behavior
+- current implementation
+- observed failures
+- host-specific assumptions
 
-Then run VALIDATE Stage 2 (discovery) on the description. Report score + checklist.
+### 3. Freeze the eval split
 
-The deterministic subset of this checklist is emitted as binary BinEval question records by `scripts/eval_skill.py --json` (e.g. `DET-STRUCT-SKILLMD-EXISTS`, `DET-DISCOVERY-DESC-PRESENT`, `DET-ROBUST-NO-SECRETS`) — the sole emitter of those records.
+Keep the existing evidence discipline:
 
-The checklist exists because these are the failure modes that actually happen in practice — especially process-in-description, which causes the agent to skip the body entirely.
+1. stratify train vs held-out once per session
+2. do not expose held-out lessons to the editor
+3. learn from train failures
+4. apply at most 3 atomic edits per iteration
+5. run all cases again
 
----
+Accept a candidate only if:
 
-## Mode 5: OPTIMIZE
+- train performance improves on the targeted failure
+- no new critical question fails
+- a held-out pass->fail flip does not reproduce in two consecutive runs
 
-Automated description optimization. The description competes with other skills for Claude's attention — optimization finds the wording that triggers most accurately. The same train/held-out principle now gates body edits too — see Mode 2 Step 3.
+Keep the best accepted candidate, not the latest candidate.
 
-### How it works
+### 4. Preserve host boundaries
 
-1. Create an eval set: 20 queries (10 should-trigger, 10 should-not)
+A fix learned on one host is a hypothesis for another host, not proof.
 
-#### Writing good eval queries
+When a change touches discovery, tool use, filesystem operations, shell/Python, approvals, or packaging, re-run the affected target-host cases.
 
-Queries must be realistic — concrete, detailed, with file paths, context, abbreviations, typos. Not `"Format this data"` but `"my boss sent Q4 sales final FINAL v2.xlsx, add profit margin % column, revenue is col C costs col D"`.
+## VALIDATE
 
-**Should-trigger (10):** Different phrasings of the same intent — formal, casual, implicit. Include cases where user doesn't name the skill but clearly needs it. Add competing-skill edge cases.
+Run four layers in order. Use `references/cross-host-evaluation.md`.
 
-**Should-NOT-trigger (10):** Near-misses that share keywords but need something different. Adjacent domains, ambiguous phrasing. "Write fibonacci" as negative for PDF skill = useless — too easy. Make negatives genuinely tricky.
+### Layer 1: Artifact
 
-**Triggering mechanics:** Claude only consults skills for tasks it can't handle directly. Simple queries ("read this PDF") won't trigger skills regardless of description — Claude handles them with basic tools. Eval queries must be substantive enough that consulting a skill would help.
+Check:
 
-2. Review queries in the browser: `assets/eval_review.html`
-3. Run the optimization loop:
+- exact `SKILL.md`
+- valid frontmatter
+- folder/name agreement
+- description size and discovery focus
+- reference depth
+- no secret-shaped content
+- no personal absolute paths
+- declared resource paths exist
+- package manifest paths stay inside package root
+
+Use:
 
 ```bash
-uv run scripts/run_loop.py \
-  --eval-set evals/eval_set.json \
-  --skill-path <skill-dir> \
-  --model <model-id> \
-  --max-iterations 5 \
-  --holdout 0.4 \
-  --verbose
+python3 scripts/validate_portability.py <skill-dir> --targets <hosts>
 ```
 
-The loop:
+### Layer 2: Discovery
 
-- Splits queries into train (60%) and held-out (40%) to prevent overfitting
-- Each iteration: evaluates current description → Claude proposes improvement → re-evaluates
-- Improvement model sees only train results (blinded to held-out)
-- Selects the best description by held-out score
-- Opens live HTML report automatically
+For each target host, test:
 
-### Supporting scripts
+- 3 direct positives
+- 3 indirect positives
+- 3 near-miss negatives
 
-| Script                           | Purpose                                    |
-| -------------------------------- | ------------------------------------------ |
-| `scripts/run_eval.py`            | Run trigger evaluation on a description    |
-| `scripts/improve_description.py` | Claude proposes improved description       |
-| `scripts/generate_report.py`     | HTML visualization of optimization history |
-| `scripts/aggregate_benchmark.py` | Statistical aggregation of benchmark runs  |
+Use a clean context when the host supports it.
 
----
+Do not reuse one host's trigger result as another host's evidence.
 
-## Mode 6: PACKAGE
+`run_eval.py` is currently a **Claude Code discovery adapter**. It creates Claude command files and invokes `claude -p`; it is not a ChatGPT/Codex trigger oracle.
 
-1. Run REVIEW checklist (Mode 4)
-2. Validate:
+### Layer 3: Behavior
 
-```bash
-uv run scripts/quick_validate.py <skill-folder>
+Grade observable assertions, not writing style.
+
+Use `agents/grader.md` for task-output assertions and `agents/bineval.md` for artifact questions.
+
+The judge writes critique/evidence before verdict. The orchestrator computes the aggregate and gate.
+
+### Layer 4: Portability
+
+For every target host, answer:
+
+- does discovery work there?
+- are required capabilities present?
+- are mutation/approval assumptions correct?
+- do resource paths resolve after install?
+- can deterministic scripts run in the exposed runtime?
+- does the package format match the host?
+- which claims remain unverified?
+
+A multi-host skill passes only for the hosts with complete evidence. Report partial support explicitly.
+
+## REVIEW
+
+Use for third-party skills before installation or reuse.
+
+Check:
+
+- discovery scope and negative triggers
+- workflow usefulness versus generic advice
+- progressive disclosure
+- hidden tool/network assumptions
+- script and reference safety
+- secret-shaped or user-specific data
+- package traversal/symlink risk when inspecting an archive
+- host compatibility claims
+- eval quality
+- time-sensitive instructions that can rot
+
+Then classify:
+
+- **installable**: no critical issue and claims match evidence
+- **repairable**: useful core but blocking issues exist
+- **reject**: unsafe, misleading, or behavior adds no meaningful value
+
+Do not treat repository popularity as skill quality evidence.
+
+## OPTIMIZE
+
+Use only when discovery wording is the main failure.
+
+1. Build a realistic prompt bank with positive and near-miss cases
+2. Freeze train/held-out split
+3. Change description only from train evidence
+4. Compare candidates on held-out discovery
+5. re-run direct/indirect/negative prompts on the target host
+
+Current `run_loop.py` and `improve_description.py` are Claude-oriented adapters. Use them only for Claude Code evidence unless they are explicitly refactored behind another host adapter.
+
+For ChatGPT, Codex, or custom hosts, use the actual host's discovery mechanism rather than simulating a Claude event stream.
+
+## PORT
+
+Port behavior, not branding.
+
+### 1. Extract the universal core
+
+From the source skill, capture:
+
+- job and failure
+- triggers/negatives
+- workflow and invariants
+- knowledge/resources
+- deterministic scripts
+- eval assertions
+
+### 2. Strip source-host mechanics
+
+Mark every assumption about:
+
+- tool names
+- skill-loading events
+- directories
+- env variables
+- CLI commands
+- subagents
+- permissions/approvals
+- app/MCP bindings
+
+Do not search-and-replace provider names.
+
+### 3. Apply target host profile
+
+Use `references/host-profiles.md` to map each required capability.
+
+Disposition each source behavior:
+
+- preserve
+- translate
+- replace
+- make optional
+- remove
+- unresolved gap
+
+### 4. Recompile and re-evaluate
+
+Generate the target-host artifact, then run all four VALIDATE layers.
+
+Return a port report with:
+
+- preserved universal behavior
+- target-specific adaptations
+- unsupported assumptions
+- tests actually run
+- tests not run
+- confidence by host
+
+## PACKAGE
+
+Choose the package from the target host.
+
+### Standalone Agent Skill
+
+For Agent Skills-compatible hosts, package the skill folder only after validation.
+
+Existing `package_skill.py` can create the `.skill` archive. Inspect the extracted archive before claiming success.
+
+### ChatGPT/Codex Plugin
+
+When the user asks for a Plugin, follow the current OpenAI Plugin contract rather than copying Claude metadata.
+
+Expected root shape:
+
+```text
+.codex-plugin/
+  plugin.json
+skills/
+  <skill>/SKILL.md
+assets/                  # optional
 ```
 
-3. Package:
+Keep only `plugin.json` in `.codex-plugin/`. A skills-only Plugin does not need MCP merely to execute instructions or use host-native file/Python capabilities.
 
-```bash
-uv run scripts/package_skill.py <skill-folder> [output-dir]
-```
+Validate package-relative paths and final listing metadata against current OpenAI documentation before submission.
 
-Creates `skill-name.skill` (zip with .skill extension). Verify: unzip in temp dir, check structure intact.
+### Claude Code plugin
 
----
+Preserve `.claude-plugin/` metadata and Claude-specific runner behavior only for the Claude distribution path.
 
-## Quick Reference
+### Custom host
 
-### Skill categories
+Use its documented package contract. If documentation or install evidence is unavailable, deliver the portable Skill plus a gap report instead of inventing a package.
 
-1. **Document/Asset Creation** — consistent output (docs, designs, code)
-2. **Workflow Automation** — multi-step processes with methodology
-3. **MCP Enhancement** — workflow guidance on top of tool access
-4. **Procedural / Process** — business procedures with decision points and exceptions (handling a request, generating a quote, processing an invoice, onboarding, escalation). For these → read `references/sop-practices.md`
+## Quality gate
 
-### File purposes
+Use BinEval across:
 
-| Directory   | Loaded?              | Purpose                  |
-| ----------- | -------------------- | ------------------------ |
-| SKILL.md    | on trigger           | brain — instructions     |
-| references/ | on demand            | detailed docs, schemas   |
-| scripts/    | executed, not loaded | deterministic operations |
-| assets/     | never loaded         | templates, images        |
+- Discovery
+- Clarity
+- Structure
+- Robustness
+- Completeness
 
-### Progressive disclosure budget
+The judge answers atomic questions with evidence. The orchestrator computes scores.
 
-| Level             | When loaded            | Budget     |
-| ----------------- | ---------------------- | ---------- |
-| Frontmatter       | always (system prompt) | ~100 words |
-| SKILL.md body     | on trigger             | <500 lines |
-| Bundled resources | on demand              | unlimited  |
+A scalar does not override a critical failure.
 
-### Description formula
+For multi-host claims, add the portability gate from `references/cross-host-evaluation.md`.
 
-`[What it does]` + `Use when [4-5 phrasings users actually say]` + `even if they don't explicitly say "<canonical term>"` + `Do NOT use for [negatives]` — full rules and examples in `references/sop-practices.md` Principle #2.
+## Evidence rules
 
-## Reference Files
+- Never say a command ran if the current host did not execute it
+- Never claim trigger behavior on a host that was not tested
+- Never infer a public publisher identity from a repository owner
+- Never hide missing legal URLs or reviewer requirements behind draft copy
+- Never add MCP or authentication just to make a Plugin look more substantial
+- Never let a provider-specific runner define universal Skill quality
 
-Load on demand, at the point of use named in each mode — never wholesale. Load an `agents/*` file only at the step that spawns that agent; load `references/schemas.md` only when writing or reading a JSON artifact. Everything else stays unloaded.
+## Stop conditions
 
-| Path                             | What's inside                              |
-| -------------------------------- | ------------------------------------------ |
-| `agents/grader.md`               | Evidence-based assertion grading           |
-| `agents/comparator.md`           | Blind A/B output comparison                |
-| `agents/analyzer.md`             | Post-hoc analysis + benchmark notes        |
-| `agents/bineval.md`              | BinEval evaluator — emits `bineval.json`   |
-| `references/patterns.md`         | 5 architectural patterns + anti-patterns   |
-| `references/schemas.md`          | JSON schemas for evals, grading, benchmark |
-| `references/bineval-method.md`   | BinEval method: dimensions, scoring, GATE  |
-| `references/quality-questions.md`| BinEval question bank (deterministic + bank)|
-| `references/pressure-testing.md` | Micro-tests for wording + pressure scenarios for discipline skills |
-| `references/sop-practices.md`    | **Canon: 10 authoring principles (universal)** + deep SOP methodology for procedural skills |
-| `references/runtime-setup.md`    | Pre-flight: uv/env/path checks, LLM-access options |
-| `eval-viewer/`                   | Interactive HTML viewer for eval results   |
-| `assets/eval_review.html`        | Trigger eval set editor                    |
-| `scripts/eval_skill.py`          | Structural validation (10-point scoring)   |
-| `scripts/init_skill.py`          | Skill scaffolder                           |
-| `scripts/run_eval.py`            | Trigger evaluation runner                  |
-| `scripts/run_loop.py`            | Eval + improve optimization loop           |
-| `scripts/improve_description.py` | Claude-powered description improvement     |
-| `scripts/aggregate_benchmark.py` | Benchmark statistics aggregator            |
-| `scripts/generate_report.py`     | HTML report generator                      |
-| `scripts/quick_validate.py`      | Quick validation for packager              |
-| `scripts/test_smoke.py`          | Smoke tests for all scripts (12 tests)     |
-| `scripts/package_skill.py`       | Skill → .skill packager                    |
-| `scripts/utils.py`               | Shared utilities (parse_skill_md)          |
+Stop an improvement loop when any applies:
+
+- target failure is fixed and gates pass
+- 3 accepted/rejected edit iterations produce no reproducible improvement
+- missing host capability prevents further evidence
+- evals are too weak to discriminate candidates
+- user intent changed enough to require a new SkillSpec
+
+Report the blocker and preserve the best accepted version.
+
+## Reference map
+
+Load on demand:
+
+| Path | Use |
+| --- | --- |
+| `references/skill-spec.md` | universal design contract |
+| `references/host-profiles.md` | host capability mapping |
+| `references/cross-host-evaluation.md` | per-host evidence and portability gate |
+| `references/patterns.md` | architecture patterns |
+| `references/sop-practices.md` | authoring canon and procedural skills |
+| `references/pressure-testing.md` | micro-tests and discipline pressure cases |
+| `references/bineval-method.md` | binary evaluation and acceptance gate |
+| `references/quality-questions.md` | fixed artifact question bank |
+| `references/schemas.md` | eval/benchmark JSON shapes |
+| `references/runtime-setup.md` | execution capabilities and provider-specific adapters |
+| `agents/grader.md` | assertion grading |
+| `agents/comparator.md` | blind A/B output comparison |
+| `agents/analyzer.md` | root-cause analysis |
+| `agents/bineval.md` | artifact binary judging |
+| `scripts/compile_skill_spec.py` | portable SkillSpec compiler |
+| `scripts/validate_portability.py` | static host/package validation |
+| `scripts/test_portability.py` | portable smoke tests |
+| `scripts/run_eval.py` | Claude Code trigger adapter |

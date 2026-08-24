@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Skill Conductor icon">
+  <rect width="128" height="128" rx="28" fill="#171717"/>
+  <path d="M24 38h38M24 64h54M24 90h38" fill="none" stroke="#F7F7F5" stroke-width="10" stroke-linecap="round"/>
+  <path d="M82 30l18 34-18 34" fill="none" stroke="#F7F7F5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

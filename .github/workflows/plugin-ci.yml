@@ -1,0 +1,38 @@
+name: plugin-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate plugin JSON
+        run: |
+          python -m json.tool .codex-plugin/plugin.json >/dev/null
+          python -m json.tool .agents/plugins/marketplace.json >/dev/null
+          python -m json.tool .claude-plugin/plugin.json >/dev/null
+          python -m json.tool .claude-plugin/marketplace.json >/dev/null
+      - name: Run portable skill smoke tests
+        run: python skills/skill-conductor/scripts/test_portability.py
+      - name: Validate Skill Conductor portability
+        run: |
+          python skills/skill-conductor/scripts/validate_portability.py \
+            skills/skill-conductor \
+            --targets agent-skills,chatgpt,codex,claude-code \
+            --plugin-root .
+      - name: Validate SVG assets
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          for path in ("assets/logo-light.svg", "assets/logo-dark.svg", "assets/icon.svg"):
+              root = ET.parse(path).getroot()
+              assert root.attrib.get("viewBox") in {"0 0 256 256", "0 0 128 128"}
+          print("SVG validation: PASS")
+          PY
