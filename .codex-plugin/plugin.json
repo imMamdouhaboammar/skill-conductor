@@ -1,0 +1,44 @@
+{
+  "name": "skill-conductor",
+  "version": "4.0.0",
+  "description": "Design, evaluate, improve, port, and package high-quality agent Skills across ChatGPT, Codex, Claude, and other compatible agent hosts",
+  "author": {
+    "name": "Mamdouh Aboammar",
+    "url": "https://github.com/imMamdouhaboammar"
+  },
+  "license": "MIT",
+  "keywords": ["skills", "agents", "chatgpt", "codex", "claude", "skill-authoring", "evals", "agent-skills", "developer-tools"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skill Conductor",
+    "shortDescription": "Design and test agent Skills",
+    "longDescription": "Turns a task, workflow, prompt, SOP, or existing Skill into a portable agent Skill. It designs the architecture before writing, defines a host-neutral Skill Contract, calibrates freedom by consequence, builds trigger and negative-trigger coverage, runs structural and behavioral evaluation, pressure-tests brittle rules, compares candidates against held-out cases, compiles host adapters only where necessary, and prepares installable Skill packages without pretending unexecuted tests passed.",
+    "developerName": "Mamdouh Aboammar",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Skill architecture design",
+      "Skill Contract generation",
+      "Trigger and negative-trigger design",
+      "Workflow-to-Skill compilation",
+      "Cross-host portability planning",
+      "Structural Skill validation",
+      "Behavioral and pressure-test design",
+      "Held-out evaluation gates",
+      "Skill improvement and regression control",
+      "Skill packaging and review preparation"
+    ],
+    "websiteURL": "https://github.com/imMamdouhaboammar/skill-conductor",
+    "defaultPrompt": [
+      "Design a production-quality Skill for this workflow and prove why the Skill is needed.",
+      "Audit this Skill for triggering, instruction quality, portability, and regression risk.",
+      "Convert this workflow into a portable Skill for ChatGPT, Codex, Claude, and compatible agents."
+    ],
+    "brandColor": "#171717",
+    "composerIcon": "./assets/mark.svg",
+    "logo": "./assets/logo-light.svg",
+    "privacyPolicyURL": "https://github.com/imMamdouhaboammar/skill-conductor/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/imMamdouhaboammar/skill-conductor/blob/main/TERMS.md"
+  },
+  "homepage": "https://github.com/imMamdouhaboammar/skill-conductor",
+  "repository": "https://github.com/imMamdouhaboammar/skill-conductor"
+}
