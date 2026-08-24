@@ -1,11 +1,9 @@
-# Privacy
+# Privacy Policy
 
-Skill Conductor is distributed as instruction files, references, and local helper scripts.
+Skill Conductor is a Skills-only toolkit and plugin. It does not operate a hosted backend, does not require an external account, and does not collect or transmit user data.
 
-The package itself does not operate a hosted service and does not intentionally collect or transmit user data to the package maintainers.
+When executed inside an agent host (such as ChatGPT, Codex, Claude Code, or another Agent Skills-compatible runtime), operations are performed using host-native workspace capabilities subject to the host's policies, workspace boundaries, and user permissions.
 
-When a user runs Skill Conductor inside ChatGPT, Codex, Claude Code, or another agent host, data handling is governed by that host, the tools/apps the user enables, and any external services the workflow explicitly uses.
+Skill Conductor explicitly instructs agents never to write API keys, credentials, tokens, or private personal data into generated skills, logs, eval banks, examples, or distribution packages.
 
-Skill Conductor instructs agents not to place credentials, secrets, private keys, or unrelated personal data into generated skills, logs, examples, or distribution packages.
-
-If future versions add a hosted service or required external app, this policy must be updated before public distribution.
+Repository: https://github.com/imMamdouhaboammar/skill-conductor

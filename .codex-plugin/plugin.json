@@ -1,9 +1,11 @@
 {
   "name": "skill-conductor",
   "version": "4.0.0",
-  "description": "Design, evaluate, port, and package reliable agent skills across ChatGPT, Codex, Claude Code, and Agent Skills-compatible hosts.",
-  "homepage": "https://github.com/imMamdouhaboammar/skill-conductor",
-  "repository": "https://github.com/imMamdouhaboammar/skill-conductor",
+  "description": "Design, evaluate, improve, port, and package reliable agent skills across ChatGPT, Codex, Claude Code, and Agent Skills-compatible hosts.",
+  "author": {
+    "name": "Mamdouh Aboammar",
+    "url": "https://github.com/imMamdouhaboammar"
+  },
   "license": "MIT",
   "keywords": [
     "agent-skills",
@@ -11,30 +13,40 @@
     "evals",
     "chatgpt",
     "codex",
-    "claude-code"
+    "claude-code",
+    "developer-tools"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Skill Conductor",
     "shortDescription": "Design and test agent skills",
-    "longDescription": "Create new agent skills, diagnose weak ones, build evidence-backed evals, adapt skills across agent hosts, and package them for distribution without treating provider-specific behavior as universal.",
+    "longDescription": "Turns tasks, workflows, prompts, SOPs, or existing skills into portable, robust agent skills. Designs architecture before writing, calibrates freedom by consequence, builds trigger and negative-trigger coverage, runs structural and behavioral evaluations, pressure-tests brittle rules, compiles host adapters, and packages installable skills.",
+    "developerName": "Mamdouh Aboammar",
     "category": "Developer Tools",
     "capabilities": [
-      "Design agent skills",
-      "Evaluate skill behavior",
-      "Port skills across hosts",
-      "Package skills for distribution"
+      "Skill architecture design",
+      "SkillSpec & Skill Contract generation",
+      "Trigger and negative-trigger design",
+      "Workflow-to-Skill compilation",
+      "Cross-host portability planning",
+      "Structural Skill validation",
+      "Behavioral and pressure-test design",
+      "Held-out evaluation gates",
+      "Skill improvement and regression control",
+      "Skill packaging and review preparation"
     ],
     "websiteURL": "https://github.com/imMamdouhaboammar/skill-conductor",
-    "privacyPolicyURL": "https://github.com/imMamdouhaboammar/skill-conductor/blob/main/PRIVACY.md",
-    "termsOfServiceURL": "https://github.com/imMamdouhaboammar/skill-conductor/blob/main/TERMS.md",
     "defaultPrompt": [
-      "Design a production-ready skill for this workflow and target it to ChatGPT and Codex.",
-      "Review this skill, find trigger and behavior failures, then propose the smallest evidence-backed fixes.",
-      "Port this Claude Code skill to an Agent Skills-compatible version and report host-specific gaps."
+      "Design a production-quality Skill for this workflow and prove why the Skill is needed.",
+      "Audit this Skill for triggering, instruction quality, portability, and regression risk.",
+      "Convert this workflow into a portable Skill for ChatGPT, Codex, Claude, and compatible agents."
     ],
     "brandColor": "#171717",
-    "composerIcon": "./assets/icon.svg",
-    "logo": "./assets/logo-light.svg"
-  }
+    "composerIcon": "./assets/mark.svg",
+    "logo": "./assets/logo-light.svg",
+    "privacyPolicyURL": "https://github.com/imMamdouhaboammar/skill-conductor/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/imMamdouhaboammar/skill-conductor/blob/main/TERMS.md"
+  },
+  "homepage": "https://github.com/imMamdouhaboammar/skill-conductor",
+  "repository": "https://github.com/imMamdouhaboammar/skill-conductor"
 }

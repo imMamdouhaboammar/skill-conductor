@@ -1,39 +1,53 @@
 ---
 name: host-workspace-operator
-description: Use when a Skill Conductor workflow needs to inspect, search, modify, or verify files in the host workspace using the safest native capabilities available.
+description: >
+  Use when Skill Conductor needs to inspect, search, modify, or verify files in the active host workspace using the safest native capability available. Do NOT assume the plugin itself grants filesystem, shell, search, patch, or Python access.
 ---
 
 # Host Workspace Operator
 
-Use workspace capabilities supplied by the current host instead of pretending the plugin owns a filesystem API.
+Use capabilities supplied by the current host. Route by capability rather than a hard-coded vendor tool name.
 
-Prefer the narrowest operation that can answer the task:
+## Capability Order
 
-1. `read` for a known file or range
-2. `list` for directory/workspace shape
-3. `search` for broad or semantic discovery
-4. `grep` for exact text, regex, symbols, or fields
-5. `patch` for focused edits
-6. `write` for authorized creation/replacement
-7. `shell` for repository commands when narrower operations are insufficient
-8. `python` for deterministic parsing, generation, hashing, archive checks, or validation
+Prefer the narrowest operation that fits:
 
-Read-only discovery comes before mutation.
+1. **Read**: a known file or line range
+2. **List**: a directory or workspace scope
+3. **Search**: broad concepts when wording or location is uncertain
+4. **Grep**: exact-match known terms, symbols, fields, or patterns
+5. **Patch**: a focused existing section
+6. **Write**: only when creation or replacement is authorized
+7. **Shell**: repository commands when narrower tools are insufficient
+8. **Python / Deterministic**: computation for parsing, hashes, package inspection, or verification
 
-Before changing workspace state:
+Do not use shell or Python merely to imitate a safer read/search/file operation.
 
-- confirm the request authorizes the change
-- inspect repository instructions and relevant source
-- preserve unrelated work
-- prefer focused patches to broad rewrites
-- never write secrets into source, manifests, examples, logs, or packages
+## Read-Only First
 
-After mutation:
+Before mutation:
 
-- read back the changed area when practical
-- run the relevant verifier/test when available
-- report files changed and execution evidence
+- inspect repository instructions
+- locate relevant files
+- read enough context to preserve unrelated work
+- distinguish source from generated/vendor files
+- identify the smallest mutation that completes the request
 
-If a capability is unavailable, do not invent a replacement tool name or claim the operation occurred.
+## Mutation Boundary
 
-This skill does not grant filesystem permissions. It maps workflow intent to host-native capabilities when present.
+Treat write, patch, delete, move, rename, format, and mutating commands as state changes.
+
+- Only mutate when the user requested or clearly authorized the change
+- Prefer a focused patch over a broad rewrite
+- Never write credentials or secrets into source, examples, manifests, logs, or artifacts
+- After mutation, read changed areas and run relevant checks when the host can execute them
+
+## Evidence Rule
+
+Never say a file was read, searched, modified, tested, or executed unless the host produced evidence of that action.
+
+If the required capability is unavailable:
+
+- do not invent a tool or manifest permission
+- use another capability only if it preserves semantics and safety
+- otherwise keep the dependent result unverified

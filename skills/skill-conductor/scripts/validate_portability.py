@@ -12,7 +12,9 @@ NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SECRET_RE = re.compile(
     r"(sk-[A-Za-z0-9_-]{16,}|ANTHROPIC_API_KEY\s*=|OPENAI_API_KEY\s*=|BEGIN (?:RSA |EC )?PRIVATE KEY)"
 )
-ABSOLUTE_PERSONAL_RE = re.compile(r"(/" + "Users" + r"/[^/\s]+|/" + "home" + r"/[^/\s]+|[A-Za-z]:\\\\\\\\" + "Users" + r"\\\\[^\\\\\s]+)")
+ABSOLUTE_PERSONAL_RE = re.compile(
+    r"(/(?:Users|home)/[^\s/]+|[A-Za-z]:[/\\]+(?:Users|home)[/\\]+[^\s/\\]+)"
+)
 PROCESS_HINT_RE = re.compile(
     r"\b(first|then|next|finally|step\s+\d+|after that|before you)\b", re.I
 )
