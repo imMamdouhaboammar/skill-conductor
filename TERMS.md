@@ -1,11 +1,11 @@
 # Terms of Service
 
-Skill Conductor is provided under the repository's MIT License.
+Skill Conductor is open-source software provided under the MIT License.
 
-The plugin supplies reusable instructions, evaluation methods, and local helper scripts for designing and assessing agent Skills. Outputs remain drafts until the relevant host, package, and behavior checks have actually been executed.
+The toolkit provides reusable instructions, specification contracts, evaluation methods, and local helper scripts for designing and testing agent skills. Outputs remain drafts until relevant host, package, and behavioral checks have actually been executed.
 
-Users are responsible for reviewing generated Skills before installation or distribution, especially when a Skill can modify files, run commands, access connected services, or influence consequential workflows.
+Users are responsible for reviewing generated skills before installation or production use, especially when a skill executes commands, modifies files, or accesses external APIs.
 
-Skill Conductor does not guarantee acceptance by any marketplace, plugin directory, agent platform, or review process.
+Skill Conductor does not guarantee approval by any third-party directory, marketplace, or review team.
 
 Repository: https://github.com/imMamdouhaboammar/skill-conductor

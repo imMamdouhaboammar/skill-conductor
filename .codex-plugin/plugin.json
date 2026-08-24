@@ -1,23 +1,31 @@
 {
   "name": "skill-conductor",
   "version": "4.0.0",
-  "description": "Design, evaluate, improve, port, and package high-quality agent Skills across ChatGPT, Codex, Claude, and other compatible agent hosts",
+  "description": "Design, evaluate, improve, port, and package reliable agent skills across ChatGPT, Codex, Claude Code, and Agent Skills-compatible hosts.",
   "author": {
     "name": "Mamdouh Aboammar",
     "url": "https://github.com/imMamdouhaboammar"
   },
   "license": "MIT",
-  "keywords": ["skills", "agents", "chatgpt", "codex", "claude", "skill-authoring", "evals", "agent-skills", "developer-tools"],
+  "keywords": [
+    "agent-skills",
+    "skill-authoring",
+    "evals",
+    "chatgpt",
+    "codex",
+    "claude-code",
+    "developer-tools"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Skill Conductor",
-    "shortDescription": "Design and test agent Skills",
-    "longDescription": "Turns a task, workflow, prompt, SOP, or existing Skill into a portable agent Skill. It designs the architecture before writing, defines a host-neutral Skill Contract, calibrates freedom by consequence, builds trigger and negative-trigger coverage, runs structural and behavioral evaluation, pressure-tests brittle rules, compares candidates against held-out cases, compiles host adapters only where necessary, and prepares installable Skill packages without pretending unexecuted tests passed.",
+    "shortDescription": "Design and test agent skills",
+    "longDescription": "Turns tasks, workflows, prompts, SOPs, or existing skills into portable, robust agent skills. Designs architecture before writing, calibrates freedom by consequence, builds trigger and negative-trigger coverage, runs structural and behavioral evaluations, pressure-tests brittle rules, compiles host adapters, and packages installable skills.",
     "developerName": "Mamdouh Aboammar",
     "category": "Developer Tools",
     "capabilities": [
       "Skill architecture design",
-      "Skill Contract generation",
+      "SkillSpec & Skill Contract generation",
       "Trigger and negative-trigger design",
       "Workflow-to-Skill compilation",
       "Cross-host portability planning",

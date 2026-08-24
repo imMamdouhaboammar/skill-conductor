@@ -6,215 +6,113 @@
 
 > Design the behavior first. Write the Skill second. Prove it works before you ship it.
 
-Skill Conductor is a cross-host Skill engineering toolkit for ChatGPT, Codex, Claude, API agents, and other compatible agent hosts
+Skill Conductor is a cross-host Skill engineering toolkit and plugin for ChatGPT, Codex, Claude Code, Agent Skills, and compatible agent hosts.
 
-It turns a vague request like “teach my agent to do this consistently” into a defined behavioral contract, a deliberate Skill architecture, an evaluation bank, a regression gate, and a portable package
+It turns vague requests like *"teach my agent to do this consistently"* into defined behavioral contracts, deliberate Skill architectures, comprehensive evaluation banks, regression gates, and portable packages.
 
 The core lifecycle is:
 
-**need → contract → architecture → baseline → build → evaluate → improve → port → package**
+$$\text{need} \longrightarrow \text{contract} \longrightarrow \text{architecture} \longrightarrow \text{baseline} \longrightarrow \text{build} \longrightarrow \text{evaluate} \longrightarrow \text{improve} \longrightarrow \text{port} \longrightarrow \text{package}$$
 
-## What changed in v4
+---
 
-Earlier Conductor releases built a strong architecture-first and eval-first methodology, but parts of the workflow assumed a Claude-specific runtime, Anthropic execution paths, and `uv` as if they were universal requirements
+## What Changed in v4
 
-v4 separates two things that should never have been mixed:
+Earlier Conductor releases established a strong architecture-first and eval-first methodology, but parts of the workflow assumed vendor-specific runtimes or Anthropic execution keys as universal requirements.
 
-1. **Portable Skill behavior**
-   - user job
-   - activation boundary
-   - decisions
-   - evidence gates
-   - completion conditions
-   - freedom level
-   - eval contract
+**v4 cleanly separates:**
 
-2. **Host adapter**
-   - install layout
-   - manifest format
-   - tool names
-   - hooks
-   - runtime details
-   - packaging mechanics
+1. **Portable Skill Behavior**
+   - User job & intent boundary
+   - Positive, implicit, and negative triggers
+   - Decision points and gates
+   - Evidence requirements & mutation boundaries
+   - Freedom level calibration (high/medium/low)
+   - Evaluation contract & held-out test banks
 
-That means the same Skill can be designed once, then adapted honestly for ChatGPT, Codex, Claude, or another agent without copying the whole workflow into several drifting versions
+2. **Host Adapters**
+   - Installation layout
+   - Manifest format (`.codex-plugin`, `.claude-plugin`, `.agents`)
+   - Tool & capability bindings
+   - Runtime-specific execution details
+   - Packaging mechanics
 
-## The Plugin
+Design once, then adapt honestly for ChatGPT, Codex, Claude Code, or any Agent Skills-compatible host.
 
-This repository now includes a Skills-only ChatGPT/Codex Plugin surface under `.codex-plugin/plugin.json`
+---
 
-Public Skills:
+## Skills Suite
 
-| Skill | Job |
+| Skill | Description |
 |---|---|
-| `skill-conductor` | Router and full lifecycle conductor |
-| `skill-architect` | Design a new Skill or compile a workflow into one |
-| `skill-evaluator` | Test activation, behavior, pressure resistance, and regressions |
-| `skill-portability-compiler` | Separate portable behavior from host-specific adapters |
-| `host-workspace-operator` | Use host-native workspace capabilities safely when present |
+| [`skill-conductor`](skills/skill-conductor) | Primary orchestrator and full lifecycle router (`CREATE`, `IMPROVE`, `VALIDATE`, `REVIEW`, `OPTIMIZE`, `PORT`, `PACKAGE`). |
+| [`skill-architect`](skills/skill-architect) | Architecture-first creation, SOP/workflow-to-Skill compilation, and freedom calibration. |
+| [`skill-evaluator`](skills/skill-evaluator) | Activation testing, behavioral assertions, pressure testing, and held-out regression control. |
+| [`skill-portability-compiler`](skills/skill-portability-compiler) | Compiles host-neutral SkillSpecs into target host adapters with explicit capability gap reports. |
+| [`host-workspace-operator`](skills/host-workspace-operator) | Safely binds workflow intent to host-native workspace capabilities (read, search, patch, write, shell). |
+| [`sandbox-python-executor`](skills/sandbox-python-executor) | Deterministic Python helper for parsing, hash verification, archive inspection, and validation. |
 
-The Plugin does not need MCP for its core job and does not grant filesystem, shell, Python, or external-service access by itself
+---
 
 ## Universal Skill Contract
 
-Before authoring, Conductor freezes ten contracts:
+Before authoring, Skill Conductor freezes ten core contracts:
 
-1. Skill identity
-2. activation
-3. behavior
-4. knowledge
-5. freedom
-6. tool capability
-7. evidence
-8. evaluation
-9. portability
-10. release
+1. **Identity**: Name, single job, target user.
+2. **Activation**: Positive, implicit, and close negative prompts + collision set.
+3. **Behavior**: Preconditions, decision logic, completion conditions.
+4. **Knowledge**: Domain facts, references separation.
+5. **Freedom**: High (judgment) vs. Medium (pseudocode) vs. Low (scripts/schemas).
+6. **Capabilities**: Required vs. optional host capabilities.
+7. **Evidence**: Grounding rules before consequential actions.
+8. **Evaluation**: BinEval assertions, held-out splits, pressure tests.
+9. **Portability**: Explicit compatibility matrices per host.
+10. **Release**: Verification gates before packaging.
 
-See `skills/skill-conductor/references/skill-contract.md`
+---
 
-This prevents the common failure where a polished `SKILL.md` hides an undefined job, broad triggering, missing failure behavior, or invented tool assumptions
+## Core Modes
 
-## Core modes
+### 1. CREATE
+Prove the Skill should exist, freeze the contract, select architectural patterns, draft the minimal candidate, and produce the evaluation blueprint.
 
-### CREATE
+### 2. IMPROVE
+Diagnose failure classes, apply minimal targeted patches, and verify against held-out regression cases.
 
-Prove the Skill should exist, freeze the contract, choose architecture, write the smallest useful candidate, then build the eval bank
+### 3. VALIDATE
+Run multi-gate verification: structural checks, manifest schemas, portability audits, and behavioral evals.
 
-### IMPROVE
+### 4. REVIEW
+Audit third-party Skills for trigger collisions, overbroad activation, brittle rules, unsafe mutations, or fake test claims.
 
-Diagnose the failure class, make small attributable edits, and accept them only when held-out behavior does not regress
+### 5. OPTIMIZE
+Calibrate descriptions for optimal activation recall and precision using held-out prompt sets.
 
-### VALIDATE
+### 6. PORT
+Compile portable SkillSpecs into target host adapters (ChatGPT, Codex, Claude Code, Agent Skills) and generate gap matrices.
 
-Separate structural validity from behavioral validity. A tidy Skill that was never behaviorally tested is not “proven”
+### 7. PACKAGE
+Package distributable `.skill` zip archives or multi-agent plugin bundles with validated manifests.
 
-### REVIEW
+---
 
-Inspect third-party Skills for activation collisions, unclear decision logic, hidden dependencies, unnecessary context, unsafe mutation assumptions, and weak evidence
+## Quickstart & Verification
 
-### OPTIMIZE
+Run local test suites:
 
-Improve activation text against positive and negative prompts without leaking the full workflow into the description
+```bash
+# Run unit & smoke tests
+python3 skills/skill-conductor/scripts/test_smoke.py
 
-### PORT
+# Run portability test suite
+python3 skills/skill-conductor/scripts/test_portability.py
 
-Extract the portable core and create host adapters only for real host differences
-
-### PACKAGE
-
-Validate intended files, references, paths, and distribution boundaries before producing a package
-
-## Architecture patterns
-
-Choose the control pattern before prose:
-
-- Sequential workflow
-- Iterative refinement
-- Context-aware selection
-- Domain intelligence
-- Multi-service coordination
-
-Then set freedom per step:
-
-- **Low** for fragile deterministic mechanics
-- **Medium** for constrained decision procedures
-- **High** where judgment is the actual value
-
-## Evaluation philosophy
-
-Conductor keeps the strongest ideas from earlier releases:
-
-- TDD-style no-Skill baseline
-- binary evidence-grounded evaluation
-- critique before verdict
-- threshold-blind judging when possible
-- cross-family judge calibration when available
-- pressure tests for brittle discipline rules
-- held-out regression gates
-- small edit budgets
-- blind A/B comparison for major changes
-- variance-aware acceptance
-
-The rule is simple: do not call an improvement real because one sample looks better
-
-## Evidence states
-
-Conductor distinguishes:
-
-- `OBSERVED`
-- `DERIVED`
-- `INFERRED`
-- `PROPOSED`
-
-And release states such as:
-
-- `DESIGNED`
-- `STRUCTURALLY_VALIDATED`
-- `BEHAVIOR_TESTED`
-- `PORTABILITY_STRUCTURAL_ONLY`
-- `PORTABILITY_TESTED`
-- `PACKAGED`
-- `SUBMISSION_DRAFT`
-- `SUBMITTED`
-- `APPROVED`
-- `PUBLISHED`
-
-No state is silently upgraded into another
-
-## Repository shape
-
-```text
-.codex-plugin/
-  plugin.json
-
-skills/
-  skill-conductor/
-    SKILL.md
-    agents/
-    references/
-    scripts/
-    eval-viewer/
-  skill-architect/
-    SKILL.md
-  skill-evaluator/
-    SKILL.md
-  skill-portability-compiler/
-    SKILL.md
-  host-workspace-operator/
-    SKILL.md
-
-assets/
-  logo-light.svg
-  logo-dark.svg
-  mark.svg
+# Validate Skill Conductor against all target hosts
+python3 skills/skill-conductor/scripts/validate_portability.py skills/skill-conductor --targets agent-skills,chatgpt,codex,claude-code --plugin-root .
 ```
 
-The original Conductor evaluation agents, BinEval references, pressure-testing material, viewer, and helper scripts remain part of the repository and are reused where the active host can actually execute them
+---
 
-## Cross-host rule
+## License & Attribution
 
-A host receives one explicit status:
-
-- `SUPPORTED_TESTED`
-- `SUPPORTED_STRUCTURAL_ONLY`
-- `ADAPTER_REQUIRED`
-- `UNSUPPORTED`
-- `UNKNOWN`
-
-“Works everywhere” is not a valid status
-
-## OpenAI Skills and Plugins
-
-OpenAI Skills follow the Agent Skills open standard and are supported across ChatGPT, Codex, and the API. Plugins can package one or more Skills and may remain Skills-only when no external app is required
-
-Skill Conductor uses that Skills-only architecture for its ChatGPT/Codex Plugin surface
-
-## Credits and methodology roots
-
-Conductor builds on ideas and research from Anthropic Skill Creator, Superpowers writing-skills, SkillOpt, BinEval / Ask Don't Judge, TICK, CheckEval, SkillJuror, SkillReducer, SOP/TWI practice, and the other references documented throughout this repository
-
-The project keeps those ideas as methodology inputs rather than treating any single vendor runtime as the definition of a Skill
-
-## License
-
-MIT
+Distributed under the [MIT License](LICENSE). See [PRIVACY.md](PRIVACY.md), [TERMS.md](TERMS.md), and [SUPPORT.md](SUPPORT.md).

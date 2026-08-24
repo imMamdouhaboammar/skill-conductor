@@ -1,13 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
-  <title id="title">Skill Conductor</title>
-  <desc id="desc">Skill Conductor square logo for light surfaces</desc>
-  <rect width="1200" height="1200" rx="260" fill="#F5F5F2"/>
-  <rect x="170" y="170" width="860" height="860" rx="190" fill="#171717"/>
-  <g fill="none" stroke="#F5F5F2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M346 804L814 336" stroke-width="74"/>
-    <path d="M330 820l86 86" stroke-width="74"/>
-    <circle cx="798" cy="432" r="78" stroke-width="48"/>
-    <circle cx="680" cy="550" r="64" stroke-width="44"/>
-    <circle cx="562" cy="668" r="50" stroke-width="40"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Skill Conductor">
+  <rect width="256" height="256" rx="52" fill="#F7F7F5"/>
+  <path d="M54 72h74M54 128h106M54 184h74" fill="none" stroke="#171717" stroke-width="18" stroke-linecap="round"/>
+  <path d="M170 58l32 70-32 70" fill="none" stroke="#171717" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="160" cy="128" r="14" fill="#171717"/>
 </svg>
