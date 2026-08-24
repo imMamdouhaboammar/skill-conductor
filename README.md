@@ -6,42 +6,85 @@
 
 > Design the behavior first. Write the Skill second. Prove it works before you ship it.
 
-Skill Conductor is a cross-host Skill engineering toolkit and plugin for ChatGPT, Codex, Claude Code, Agent Skills, and compatible agent hosts.
+Skill Conductor is a universal cross-host Skill engineering toolkit and plugin for **Claude Code, OpenAI Codex, ChatGPT, Google Antigravity, Cursor, Windsurf, OpenCode, DSH, and Skills.sh**.
 
 It turns vague requests like *"teach my agent to do this consistently"* into defined behavioral contracts, deliberate Skill architectures, comprehensive evaluation banks, regression gates, and portable packages.
 
-The core lifecycle is:
+---
 
-$$\text{need} \longrightarrow \text{contract} \longrightarrow \text{architecture} \longrightarrow \text{baseline} \longrightarrow \text{build} \longrightarrow \text{evaluate} \longrightarrow \text{improve} \longrightarrow \text{port} \longrightarrow \text{package}$$
+## ⚡ Quick Installation & Distribution
+
+Install Skill Conductor via your preferred package manager or shell:
+
+```bash
+# 🍺 Homebrew (macOS & Linux)
+brew install imMamdouhaboammar/tap/skill-conductor
+
+# 🥟 Bun / npm (Global CLI)
+bun install -g skill-conductor
+# or
+npm install -g skill-conductor
+
+# 🌐 One-line POSIX curl installer (macOS & Linux)
+curl -fsSL https://raw.githubusercontent.com/imMamdouhaboammar/skill-conductor/main/install.sh | sh
+
+# 📦 Skills.sh Registry CLI
+npx skills add imMamdouhaboammar/skill-conductor
+
+# 🐍 PyPI / pip
+pip install skill-conductor
+
+# 🪟 Windows PowerShell
+iex (irm https://raw.githubusercontent.com/imMamdouhaboammar/skill-conductor/main/install.ps1)
+```
 
 ---
 
-## What Changed in v4
+## 🤖 Multi-Agent Ecosystem Support
 
-Earlier Conductor releases established a strong architecture-first and eval-first methodology, but parts of the workflow assumed vendor-specific runtimes or Anthropic execution keys as universal requirements.
+Skill Conductor includes built-in adapters and automatic installation routines for all modern AI agent hosts:
 
-**v4 cleanly separates:**
+```bash
+# Check detected agent environments on your system
+skill-conductor doctor
 
-1. **Portable Skill Behavior**
-   - User job & intent boundary
-   - Positive, implicit, and negative triggers
-   - Decision points and gates
-   - Evidence requirements & mutation boundaries
-   - Freedom level calibration (high/medium/low)
-   - Evaluation contract & held-out test banks
+# Install the entire skill suite to all detected agents
+skill-conductor install --agent all
 
-2. **Host Adapters**
-   - Installation layout
-   - Manifest format (`.codex-plugin`, `.claude-plugin`, `.agents`)
-   - Tool & capability bindings
-   - Runtime-specific execution details
-   - Packaging mechanics
-
-Design once, then adapt honestly for ChatGPT, Codex, Claude Code, or any Agent Skills-compatible host.
+# Or install to a specific agent target:
+skill-conductor install --agent claude-code   # Anthropic Claude Code & Claude Desktop
+skill-conductor install --agent codex         # OpenAI Codex & ChatGPT Plugins
+skill-conductor install --agent antigravity   # Google Antigravity & Agent Kernel
+skill-conductor install --agent cursor        # Cursor IDE Agent (.cursor/skills)
+skill-conductor install --agent windsurf      # Codeium Windsurf Cascade (.windsurf/skills)
+skill-conductor install --agent opencode      # OpenCode CLI & Agents (.opencode/skills)
+skill-conductor install --agent dsh           # DeepSeek Harness & MasterOne (.dsh/skills)
+```
 
 ---
 
-## Skills Suite
+## 🌐 Skills.sh via Vercel Deployment
+
+Deploy your own live Skills.sh registry and interactive web catalog to Vercel in seconds:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FimMamdouhaboammar%2Fskill-conductor)
+
+```bash
+# Deploy directly from CLI
+vercel --prod
+```
+
+### Registry Endpoints:
+- `GET /` — Interactive dark-mode Skills.sh Web Catalog & Documentation.
+- `GET /api/skills` — Full JSON metadata catalog for all skills.
+- `GET /api/skills/<name>` — Detailed skill documentation, markdown body, and evals.
+- `GET /api/v1/package/<name>` — Direct `.skill` binary zip download.
+- `GET /skills.json` & `GET /registry.json` — Standard Skills.sh discovery manifests.
+- `GET /install.sh` — Direct raw installer script served from edge.
+
+---
+
+## 🛠️ Skills Suite
 
 | Skill | Description |
 |---|---|
@@ -54,61 +97,42 @@ Design once, then adapt honestly for ChatGPT, Codex, Claude Code, or any Agent S
 
 ---
 
-## Universal Skill Contract
-
-Before authoring, Skill Conductor freezes ten core contracts:
-
-1. **Identity**: Name, single job, target user.
-2. **Activation**: Positive, implicit, and close negative prompts + collision set.
-3. **Behavior**: Preconditions, decision logic, completion conditions.
-4. **Knowledge**: Domain facts, references separation.
-5. **Freedom**: High (judgment) vs. Medium (pseudocode) vs. Low (scripts/schemas).
-6. **Capabilities**: Required vs. optional host capabilities.
-7. **Evidence**: Grounding rules before consequential actions.
-8. **Evaluation**: BinEval assertions, held-out splits, pressure tests.
-9. **Portability**: Explicit compatibility matrices per host.
-10. **Release**: Verification gates before packaging.
-
----
-
-## Core Modes
-
-### 1. CREATE
-Prove the Skill should exist, freeze the contract, select architectural patterns, draft the minimal candidate, and produce the evaluation blueprint.
-
-### 2. IMPROVE
-Diagnose failure classes, apply minimal targeted patches, and verify against held-out regression cases.
-
-### 3. VALIDATE
-Run multi-gate verification: structural checks, manifest schemas, portability audits, and behavioral evals.
-
-### 4. REVIEW
-Audit third-party Skills for trigger collisions, overbroad activation, brittle rules, unsafe mutations, or fake test claims.
-
-### 5. OPTIMIZE
-Calibrate descriptions for optimal activation recall and precision using held-out prompt sets.
-
-### 6. PORT
-Compile portable SkillSpecs into target host adapters (ChatGPT, Codex, Claude Code, Agent Skills) and generate gap matrices.
-
-### 7. PACKAGE
-Package distributable `.skill` zip archives or multi-agent plugin bundles with validated manifests.
-
----
-
-## Quickstart & Verification
-
-Run local test suites:
+## 🚀 CLI Commands
 
 ```bash
-# Run unit & smoke tests
+# List all skills in the suite with evaluation status
+skill-conductor list
+
+# Validate a skill against all 10 agent host targets
+skill-conductor validate skills/skill-conductor
+
+# Package skills into .skill distributable archives with SHA256 sidecars
+skill-conductor package skills --out dist
+
+# Export host adapter packages (Claude, Codex, Antigravity, Cursor, etc.)
+skill-conductor export --out dist/adapters
+
+# Compile a SkillSpec JSON into a full skill directory
+skill-conductor compile --spec path/to/spec.json --out skills/
+```
+
+---
+
+## 🧪 Verification & Testing
+
+Run all local verification suites:
+
+```bash
+# Smoke tests
 python3 skills/skill-conductor/scripts/test_smoke.py
 
-# Run portability test suite
+# Portability test suite
 python3 skills/skill-conductor/scripts/test_portability.py
 
-# Validate Skill Conductor against all target hosts
-python3 skills/skill-conductor/scripts/validate_portability.py skills/skill-conductor --targets agent-skills,chatgpt,codex,claude-code --plugin-root .
+# Multi-target static validation across all 10 host targets
+python3 skills/skill-conductor/scripts/validate_portability.py skills/skill-conductor \
+  --targets agent-skills,chatgpt,codex,claude-code,antigravity,cursor,windsurf,opencode,skills-sh,dsh \
+  --plugin-root .
 ```
 
 ---

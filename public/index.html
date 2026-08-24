@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Conductor — Skills.sh Universal Registry & Catalog</title>
+  <meta name="description" content="Cross-host Skill engineering toolkit and plugin for ChatGPT, Codex, Claude Code, Antigravity, and compatible agent hosts.">
+  <link rel="icon" type="image/svg+xml" href="/assets/mark.svg">
+  <style>
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(18, 22, 34, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(30, 38, 60, 0.9);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --purple: #a855f7;
+      --green: #22c55e;
+      --code-bg: #0f172a;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.12) 0px, transparent 50%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      line-height: 1.6;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 1rem 2rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+    }
+
+    .tagline {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto 2rem;
+    }
+
+    /* Install Switcher */
+    .install-box {
+      max-width: 760px;
+      margin: 0 auto 3rem;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .install-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--card-border);
+      overflow-x: auto;
+    }
+
+    .install-tab {
+      padding: 0.75rem 1.25rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .install-tab.active {
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .install-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text);
+      padding: 0.4rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* Filter Controls */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 280px;
+      padding: 0.75rem 1.25rem;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Grid */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .skill-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+    }
+
+    .skill-card:hover {
+      background: var(--card-hover);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px var(--accent-glow);
+    }
+
+    .skill-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .skill-desc {
+      color: var(--text-muted);
+      font-size: 0.925rem;
+      margin-bottom: 1.25rem;
+      flex-grow: 1;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+    }
+
+    .pill.eval {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.3);
+      color: #4ade80;
+    }
+
+    .card-footer {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.55rem 0.75rem;
+      text-align: center;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #040812;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary:hover {
+      background: #7dd3fc;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge">🎼 Skill Conductor v4.0.0 • Skills.sh Registry</div>
+      <h1>Universal Agent Skills Suite</h1>
+      <p class="tagline">
+        Design, evaluate, port, and package robust agent skills across ChatGPT, Codex, Claude Code, Google Antigravity, Cursor, Windsurf, and OpenCode.
+      </p>
+
+      <!-- Install Switcher -->
+      <div class="install-box">
+        <div class="install-tabs">
+          <button class="install-tab active" onclick="switchTab(0, 'brew install imMamdouhaboammar/tap/skill-conductor')">Homebrew</button>
+          <button class="install-tab" onclick="switchTab(1, 'bun install -g skill-conductor')">Bun / npm</button>
+          <button class="install-tab" onclick="switchTab(2, 'curl -fsSL https://skills.sh/install.sh | sh')">curl | sh</button>
+          <button class="install-tab" onclick="switchTab(3, 'npx skills add imMamdouhaboammar/skill-conductor')">Skills.sh CLI</button>
+          <button class="install-tab" onclick="switchTab(4, 'pip install skill-conductor')">PyPI / pip</button>
+        </div>
+        <div class="install-content">
+          <span id="install-cmd">brew install imMamdouhaboammar/tap/skill-conductor</span>
+          <button class="copy-btn" onclick="copyInstall()">Copy</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="controls">
+      <input type="text" class="search-input" id="search-input" placeholder="Search skills by name, trigger, or host..." oninput="filterSkills()">
+    </div>
+
+    <div class="skills-grid" id="skills-grid">
+      <!-- Dynamically Populated or Pre-rendered -->
+    </div>
+
+    <footer>
+      <p>
+        Built with Skill Conductor • Distributed under MIT License •
+        <a href="https://github.com/imMamdouhaboammar/skill-conductor" target="_blank" rel="noreferrer">GitHub Repository</a> •
+        <a href="/api/skills" target="_blank">API Catalog JSON</a>
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    let activeCmd = "brew install imMamdouhaboammar/tap/skill-conductor";
+    let allSkills = [];
+
+    function switchTab(index, cmd) {
+      document.querySelectorAll('.install-tab').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+      });
+      activeCmd = cmd;
+      document.getElementById('install-cmd').innerText = cmd;
+    }
+
+    function copyInstall() {
+      navigator.clipboard.writeText(activeCmd);
+      const btn = document.querySelector('.copy-btn');
+      btn.innerText = "Copied!";
+      setTimeout(() => btn.innerText = "Copy", 1500);
+    }
+
+    async function loadCatalog() {
+      try {
+        const res = await fetch('/api/skills');
+        const data = await res.json();
+        allSkills = data.skills || [];
+      } catch (err) {
+        // Fallback static catalog
+        allSkills = [
+          {
+            name: "skill-conductor",
+            description: "Primary orchestrator and full lifecycle router (CREATE, IMPROVE, VALIDATE, REVIEW, OPTIMIZE, PORT, PACKAGE).",
+            evals_count: 12,
+            has_evals: true,
+            supported_hosts: ["claude-code", "codex", "chatgpt", "antigravity", "cursor", "windsurf", "opencode"]
+          },
+          {
+            name: "skill-architect",
+            description: "Architecture-first creation, SOP/workflow-to-Skill compilation, and freedom calibration.",
+            evals_count: 5,
+            has_evals: true,
+            supported_hosts: ["claude-code", "codex", "chatgpt", "antigravity", "cursor"]
+          },
+          {
+            name: "skill-evaluator",
+            description: "Activation testing, behavioral assertions, pressure testing, and held-out regression control.",
+            evals_count: 8,
+            has_evals: true,
+            supported_hosts: ["claude-code", "codex", "chatgpt", "antigravity"]
+          },
+          {
+            name: "skill-portability-compiler",
+            description: "Compiles host-neutral SkillSpecs into target host adapters with explicit capability gap reports.",
+            evals_count: 6,
+            has_evals: true,
+            supported_hosts: ["claude-code", "codex", "chatgpt", "antigravity", "cursor", "windsurf", "opencode"]
+          },
+          {
+            name: "host-workspace-operator",
+            description: "Safely binds workflow intent to host-native workspace capabilities (read, search, patch, write, shell).",
+            evals_count: 4,
+            has_evals: true,
+            supported_hosts: ["claude-code", "codex", "chatgpt", "antigravity"]
+          },
+          {
+            name: "sandbox-python-executor",
+            description: "Deterministic Python helper for parsing, hash verification, archive inspection, and validation.",
+            evals_count: 4,
+            has_evals: true,
+            supported_hosts: ["claude-code", "codex", "chatgpt", "antigravity"]
+          }
+        ];
+      }
+      renderSkills(allSkills);
+    }
+
+    function renderSkills(skills) {
+      const grid = document.getElementById('skills-grid');
+      grid.innerHTML = '';
+      if (!skills.length) {
+        grid.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No matching skills found.</p>';
+        return;
+      }
+      skills.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'skill-card';
+        card.innerHTML = `
+          <div>
+            <div class="skill-title">
+              <span>${s.name}</span>
+            </div>
+            <p class="skill-desc">${s.description}</p>
+            <div class="tag-row">
+              ${s.has_evals ? `<span class="pill eval">✓ ${s.evals_count || 'Verified'} Evals</span>` : ''}
+              <span class="pill">v4.0.0</span>
+              <span class="pill">Portable</span>
+            </div>
+          </div>
+          <div class="card-footer">
+            <a href="/api/v1/package/${s.name}" class="btn btn-primary" download>Download .skill</a>
+            <a href="/api/skills/${s.name}" class="btn btn-secondary" target="_blank">View JSON</a>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterSkills() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      const filtered = allSkills.filter(s => 
+        s.name.toLowerCase().includes(q) || 
+        s.description.toLowerCase().includes(q)
+      );
+      renderSkills(filtered);
+    }
+
+    loadCatalog();
+  </script>
+</body>
+</html>

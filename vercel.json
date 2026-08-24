@@ -1,0 +1,85 @@
+{
+  "version": 2,
+  "framework": null,
+  "functions": {
+    "api/**/*.py": {
+      "runtime": "python@3.12"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/v1/package/(.*)",
+      "dest": "/api/index.py?package=$1"
+    },
+    {
+      "src": "/api/v1/skills/(.*)",
+      "dest": "/api/index.py?skill=$1"
+    },
+    {
+      "src": "/api/skills/(.*)",
+      "dest": "/api/index.py?skill=$1"
+    },
+    {
+      "src": "/api/skills",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/api/registry",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/install.sh",
+      "dest": "/install.sh",
+      "headers": {
+        "Content-Type": "text/x-shellscript"
+      }
+    },
+    {
+      "src": "/install.ps1",
+      "dest": "/install.ps1",
+      "headers": {
+        "Content-Type": "text/plain"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Agent-Target"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=60, stale-while-revalidate=300"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).json",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json; charset=utf-8"
+        }
+      ]
+    }
+  ]
+}

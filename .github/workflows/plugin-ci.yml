@@ -8,25 +8,57 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Validate plugin JSON
+          python-version: ${{ matrix.python-version }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate plugin JSON manifests
         run: |
           python -m json.tool .codex-plugin/plugin.json >/dev/null
           python -m json.tool .agents/plugins/marketplace.json >/dev/null
           python -m json.tool .claude-plugin/plugin.json >/dev/null
           python -m json.tool .claude-plugin/marketplace.json >/dev/null
-      - name: Run portable skill smoke tests
-        run: python skills/skill-conductor/scripts/test_portability.py
-      - name: Validate Skill Conductor portability
+          python -m json.tool skills.json >/dev/null
+          python -m json.tool registry.json >/dev/null
+          python -m json.tool vercel.json >/dev/null
+
+      - name: Test Homebrew Formula syntax
+        run: |
+          ruby -c Formula/skill-conductor.rb
+
+      - name: Run CLI Doctor & List
+        run: |
+          chmod +x bin/skill-conductor install.sh
+          ./bin/skill-conductor doctor
+          ./bin/skill-conductor list
+
+      - name: Run smoke tests
+        run: |
+          python skills/skill-conductor/scripts/test_smoke.py
+          python skills/skill-conductor/scripts/test_portability.py
+
+      - name: Validate Skill Conductor against all targets
         run: |
           python skills/skill-conductor/scripts/validate_portability.py \
             skills/skill-conductor \
-            --targets agent-skills,chatgpt,codex,claude-code \
+            --targets agent-skills,chatgpt,codex,claude-code,antigravity,cursor,windsurf,opencode,skills-sh,dsh \
             --plugin-root .
+
+      - name: Test packaging & export
+        run: |
+          ./bin/skill-conductor package skills --out dist
+          ./bin/skill-conductor export --out dist/adapters
+
       - name: Validate SVG assets
         run: |
           python - <<'PY'

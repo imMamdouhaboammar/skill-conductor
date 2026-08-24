@@ -1,37 +1,25 @@
-#!/usr/bin/env python3
-"""Compile a JSON SkillSpec into an Agent Skills-compatible scaffold."""
+"""SkillSpec compiler for Skill Conductor."""
 
 from __future__ import annotations
 
-import argparse
 import json
-import re
 from pathlib import Path
+from typing import Any
 
-NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+from .constants import KNOWN_HOSTS, NAME_RE
+
 VALID_FREEDOM = {"low", "medium", "high"}
-KNOWN_HOSTS = {
-    "agent-skills",
-    "chatgpt",
-    "codex",
-    "claude-code",
-    "antigravity",
-    "cursor",
-    "windsurf",
-    "opencode",
-    "skills-sh",
-    "dsh",
-}
 
 
-def load_spec(path: Path) -> dict:
-    data = json.loads(path.read_text(encoding="utf-8"))
+def load_spec(path: Path | str) -> dict[str, Any]:
+    p = Path(path)
+    data = json.loads(p.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("SkillSpec root must be an object")
     return data
 
 
-def as_nonempty_list(value, field: str, minimum: int = 1) -> list:
+def as_nonempty_list(value: Any, field: str, minimum: int = 1) -> list[str]:
     if not isinstance(value, list) or len(value) < minimum:
         raise ValueError(f"{field} must be a list with at least {minimum} item(s)")
     if any(not isinstance(item, str) or not item.strip() for item in value):
@@ -39,7 +27,7 @@ def as_nonempty_list(value, field: str, minimum: int = 1) -> list:
     return [item.strip() for item in value]
 
 
-def validate_spec(spec: dict) -> None:
+def validate_spec(spec: dict[str, Any]) -> None:
     name = spec.get("name")
     if not isinstance(name, str) or not NAME_RE.fullmatch(name):
         raise ValueError("name must be kebab-case")
@@ -60,7 +48,7 @@ def validate_spec(spec: dict) -> None:
     for host in hosts:
         if host not in KNOWN_HOSTS and not host.startswith("custom:"):
             raise ValueError(
-                f"unsupported host target {host!r}; use custom:<name> for unknown hosts"
+                f"unsupported host target {host!r}; known: {', '.join(sorted(KNOWN_HOSTS))}"
             )
 
     workflow = spec.get("workflow")
@@ -74,9 +62,7 @@ def validate_spec(spec: dict) -> None:
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"workflow[{index}].{field} is required")
         if step["freedom"] not in VALID_FREEDOM:
-            raise ValueError(
-                f"workflow[{index}].freedom must be low, medium, or high"
-            )
+            raise ValueError(f"workflow[{index}].freedom must be low, medium, or high")
 
     evals = spec.get("evals")
     if not isinstance(evals, list) or len(evals) < 3:
@@ -90,7 +76,7 @@ def validate_spec(spec: dict) -> None:
             raise ValueError(f"evals[{index}].should_trigger must be boolean")
 
 
-def build_description(spec: dict) -> str:
+def build_description(spec: dict[str, Any]) -> str:
     explicit = spec.get("description")
     if isinstance(explicit, str) and explicit.strip():
         description = " ".join(explicit.split())
@@ -127,7 +113,7 @@ def yaml_fold(value: str, indent: int = 2) -> str:
     return "\n".join(prefix + line for line in lines)
 
 
-def build_skill_md(spec: dict) -> str:
+def build_skill_md(spec: dict[str, Any]) -> str:
     description = build_description(spec)
     hosts = ", ".join(spec["host_targets"])
     outputs = "\n".join(f"- {item}" for item in spec["outputs"])
@@ -138,9 +124,7 @@ def build_skill_md(spec: dict) -> str:
     for idx, step in enumerate(spec["workflow"], start=1):
         action = step["action"].replace("|", "\\|").strip()
         why = step["why"].replace("|", "\\|").strip()
-        workflow_rows.append(
-            f"| {idx} | {action} | {step['freedom']} | {why} |"
-        )
+        workflow_rows.append(f"| {idx} | {action} | {step['freedom']} | {why} |")
 
     resources = spec.get("resources") or []
     resource_block = "\n".join(f"- {item}" for item in resources) or "- None required"
@@ -212,10 +196,10 @@ Use the bundled `evals/evals.json`.
 """
 
 
-def build_eval_set(spec: dict) -> list[dict]:
+def build_eval_set(spec: dict[str, Any]) -> list[dict[str, Any]]:
     result = []
     for index, case in enumerate(spec["evals"], start=1):
-        entry = {
+        entry: dict[str, Any] = {
             "name": case.get("name") or f"case-{index}",
             "query": case["prompt"].strip(),
             "should_trigger": case["should_trigger"],
@@ -231,7 +215,7 @@ def build_eval_set(spec: dict) -> list[dict]:
     return result
 
 
-def build_host_notes(spec: dict) -> str:
+def build_host_notes(spec: dict[str, Any]) -> str:
     lines = [
         "# Host notes",
         "",
@@ -241,15 +225,30 @@ def build_host_notes(spec: dict) -> str:
     for host in spec["host_targets"]:
         lines.extend([f"## {host}", ""])
         if host == "agent-skills":
-            lines.append("Use the portable `SKILL.md` folder contract.")
+            lines.append("Use the standard portable `SKILL.md` folder contract.")
         elif host in {"chatgpt", "codex"}:
             lines.append(
-                "The skill body is portable. Plugin packaging, if requested, belongs outside "
-                "the skill under `.codex-plugin/plugin.json` at the plugin root."
+                "Portable skill body. Keep manifest under `.codex-plugin/plugin.json` at repository/plugin root."
             )
         elif host == "claude-code":
             lines.append(
-                "Keep Claude Code plugin/marketplace mechanics separate from the portable skill body."
+                "Portable skill body. Keep Claude Code plugin manifest under `.claude-plugin/plugin.json`."
+            )
+        elif host == "antigravity":
+            lines.append(
+                "Portable skill body. Compatible with Google Antigravity & Agent Kernel under `.agents/skills/`."
+            )
+        elif host in {"cursor", "windsurf", "opencode"}:
+            lines.append(
+                f"Mount under the target agent directory (e.g. `.{host}/skills/{spec['name']}/`) or workspace skills folder."
+            )
+        elif host == "skills-sh":
+            lines.append(
+                "Publishable to Skills.sh registry and deployable via Vercel Edge Serverless functions."
+            )
+        elif host == "dsh":
+            lines.append(
+                "Directly compatible with DeepSeek Harness (DSH) and MasterOne agent skill-loader."
             )
         else:
             lines.append(
@@ -259,11 +258,13 @@ def build_host_notes(spec: dict) -> str:
     return "\n".join(lines)
 
 
-def compile_spec(spec_path: Path, out_dir: Path) -> Path:
-    spec = load_spec(spec_path)
+def compile_spec(spec_path: Path | str, out_dir: Path | str) -> Path:
+    p_spec = Path(spec_path)
+    p_out = Path(out_dir)
+    spec = load_spec(p_spec)
     validate_spec(spec)
 
-    skill_dir = out_dir / spec["name"]
+    skill_dir = p_out / spec["name"]
     (skill_dir / "evals").mkdir(parents=True, exist_ok=True)
     (skill_dir / "references").mkdir(parents=True, exist_ok=True)
 
@@ -279,24 +280,3 @@ def compile_spec(spec_path: Path, out_dir: Path) -> Path:
         json.dumps(spec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     return skill_dir
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--spec", required=True, type=Path, help="SkillSpec JSON path")
-    parser.add_argument("--out", required=True, type=Path, help="Output directory")
-    parser.add_argument("--check", action="store_true", help="Validate only")
-    args = parser.parse_args()
-
-    spec = load_spec(args.spec)
-    validate_spec(spec)
-    if args.check:
-        print(json.dumps({"valid": True, "name": spec["name"]}))
-        return
-
-    skill_dir = compile_spec(args.spec, args.out)
-    print(json.dumps({"compiled": True, "path": str(skill_dir)}))
-
-
-if __name__ == "__main__":
-    main()

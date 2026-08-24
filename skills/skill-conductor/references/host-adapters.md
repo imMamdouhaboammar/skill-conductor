@@ -2,7 +2,7 @@
 
 Keep the Skill's behavioral core host-neutral. Add an adapter only when a host changes loading, installation, tool naming, packaging, or execution semantics.
 
-## Capability profile
+## Capability Profile
 
 Build this table for every claimed host:
 
@@ -21,38 +21,58 @@ Build this table for every claimed host:
 
 Do not mark unknown capabilities as supported.
 
-## OpenAI Skills adapter
+## 1. OpenAI Skills Adapter (Codex & ChatGPT)
 
-OpenAI Skills follow the Agent Skills open standard and can be used in ChatGPT, Codex, and the API. Keep a standard Skill directory with `SKILL.md` plus optional supporting resources. A ChatGPT/Codex Plugin may package one or more Skills.
+OpenAI Skills follow the Agent Skills open standard and can be used in ChatGPT, Codex, and the OpenAI API.
+- Manifest: `.codex-plugin/plugin.json` at plugin root.
+- Skill location: `skills/<skill-name>/SKILL.md`.
+- Tool mapping: OpenAI function calling / native workspace tools.
 
-For a Skills-only Plugin:
+## 2. Claude-Compatible Adapter (Claude Code & Claude Desktop)
 
-- keep `.codex-plugin/plugin.json` as the Plugin manifest
-- keep intended public Skills as immediate child directories under `skills/`
-- keep host-native workspace actions in Skill instructions rather than inventing manifest dependencies
-- include external apps or MCP only when the product truly needs connected external data or actions
+- Manifest: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
+- Skill location: `skills/<skill-name>/SKILL.md`.
+- Tool mapping: Claude Code Read/Write/Grep/Bash tools.
+- Evaluator note: Do not require Anthropic API keys for basic validation; treat LLM eval as an optional evaluator path.
 
-## Claude-compatible adapter
+## 3. Google Antigravity & Agent Kernel Adapter
 
-Treat Claude-specific plugin metadata, subagent spawning syntax, environment assumptions, or command names as an adapter, not as the universal Skill definition.
+- Manifest: `.agents/plugins/marketplace.json`.
+- Skill location: `.agents/skills/<skill-name>/` or `~/.gemini/antigravity/builtin/skills/`.
+- Tool mapping: Antigravity tool calling engine (`view_file`, `write_to_file`, `replace_file_content`, `run_command`, `invoke_subagent`).
+- Full compatibility with the shared Agent Kernel constitution.
 
-A portable Skill must not require an Anthropic API key merely to be valid. If a particular evaluator implementation uses Anthropic models, describe that as one optional executor path and retain a host-neutral evaluation contract.
+## 4. Cursor IDE Adapter
 
-## Generic agent adapter
+- Skill location: `.cursor/skills/<skill-name>/` or `.cursorrules`.
+- Installation: `skill-conductor install --agent cursor`.
 
-When the target agent does not implement the full Agent Skills package shape:
+## 5. Codeium Windsurf Adapter
 
-1. preserve the activation contract
-2. preserve the behavioral contract
-3. preserve references and scripts when the host supports them
-4. map capabilities to the host's real tools
-5. disclose unsupported capabilities
-6. re-run activation and behavioral tests on that host
+- Skill location: `.windsurf/skills/<skill-name>/` or `~/.codeium/windsurf/skills/`.
+- Installation: `skill-conductor install --agent windsurf`.
 
-## Adapter quality rules
+## 6. OpenCode CLI Adapter
+
+- Skill location: `.opencode/skills/<skill-name>/` or `.agents/skills/`.
+- Installation: `skill-conductor install --agent opencode`.
+
+## 7. DeepSeek Harness (DSH) / MasterOne Adapter
+
+- Skill location: `.dsh/skills/<skill-name>/`.
+- Compatible with custom LLM provider orchestration and fast inference runners.
+
+## 8. Skills.sh Universal Registry Adapter (Vercel)
+
+- Manifest: `skills.json` and `registry.json`.
+- Distribution: Direct `.skill` zip downloads via Vercel Edge Serverless functions (`/api/v1/package/:name`).
+- CLI integration: `npx skills add imMamdouhaboammar/skill-conductor` or `bunx skills add ...`.
+
+---
+
+## Adapter Quality Rules
 
 Reject an adapter when it:
-
 - copies the entire portable core instead of referencing it
 - changes the user job
 - silently removes gates or evidence requirements
@@ -61,14 +81,11 @@ Reject an adapter when it:
 - requires credentials unrelated to the Skill's actual job
 - reports untested compatibility as tested support
 
-## Portability status
+## Portability Status
 
 Use one status per host:
-
 - `SUPPORTED_TESTED`
 - `SUPPORTED_STRUCTURAL_ONLY`
 - `ADAPTER_REQUIRED`
 - `UNSUPPORTED`
 - `UNKNOWN`
-
-Do not collapse these into a single "works everywhere" claim.

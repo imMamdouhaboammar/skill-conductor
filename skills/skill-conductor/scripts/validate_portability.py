@@ -18,7 +18,18 @@ ABSOLUTE_PERSONAL_RE = re.compile(
 PROCESS_HINT_RE = re.compile(
     r"\b(first|then|next|finally|step\s+\d+|after that|before you)\b", re.I
 )
-KNOWN_TARGETS = {"agent-skills", "chatgpt", "codex", "claude-code"}
+KNOWN_TARGETS = {
+    "agent-skills",
+    "chatgpt",
+    "codex",
+    "claude-code",
+    "antigravity",
+    "cursor",
+    "windsurf",
+    "opencode",
+    "skills-sh",
+    "dsh",
+}
 
 
 def parse_frontmatter(text: str) -> tuple[str | None, str | None]:
@@ -153,6 +164,19 @@ def check_claude_plugin(plugin_root: Path) -> list[dict]:
     return []
 
 
+def check_antigravity_plugin(plugin_root: Path) -> list[dict]:
+    manifest = plugin_root / ".agents" / "plugins" / "marketplace.json"
+    if not manifest.is_file():
+        return [{"severity": "warning", "code": "ANTIGRAVITY_MANIFEST_MISSING", "message": ".agents/plugins/marketplace.json is missing"}]
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        if "plugins" not in data or not isinstance(data["plugins"], list):
+            return [{"severity": "error", "code": "ANTIGRAVITY_PLUGINS_ARRAY", "message": "marketplace.json must define a 'plugins' array"}]
+    except Exception as exc:
+        return [{"severity": "error", "code": "ANTIGRAVITY_MANIFEST_JSON", "message": f"invalid marketplace.json: {exc}"}]
+    return []
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("skill_dir", type=Path)
@@ -172,6 +196,8 @@ def main() -> None:
             findings.extend(check_openai_plugin(plugin_root))
         if "claude-code" in targets:
             findings.extend(check_claude_plugin(plugin_root))
+        if "antigravity" in targets:
+            findings.extend(check_antigravity_plugin(plugin_root))
 
     errors = sum(1 for item in findings if item["severity"] == "error")
     warnings = sum(1 for item in findings if item["severity"] == "warning")

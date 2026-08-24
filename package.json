@@ -1,0 +1,61 @@
+{
+  "name": "skill-conductor",
+  "version": "4.0.0",
+  "description": "Design, evaluate, port, and package reliable agent skills across all agent ecosystems.",
+  "type": "module",
+  "bin": {
+    "skill-conductor": "./bin/skill-conductor"
+  },
+  "scripts": {
+    "start": "./bin/skill-conductor list",
+    "doctor": "./bin/skill-conductor doctor",
+    "install:all": "./bin/skill-conductor install --agent all",
+    "validate": "python3 skills/skill-conductor/scripts/validate_portability.py skills/skill-conductor --targets agent-skills,chatgpt,codex,claude-code,antigravity,cursor,windsurf,opencode,skills-sh,dsh --plugin-root .",
+    "package": "./bin/skill-conductor package skills --out dist",
+    "export:adapters": "./bin/skill-conductor export --out dist/adapters",
+    "test:smoke": "python3 skills/skill-conductor/scripts/test_smoke.py",
+    "test:portability": "python3 skills/skill-conductor/scripts/test_portability.py",
+    "test": "bun run test:smoke && bun run test:portability && bun run validate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imMamdouhaboammar/skill-conductor.git"
+  },
+  "keywords": [
+    "agent-skills",
+    "skills-sh",
+    "claude-code",
+    "codex",
+    "chatgpt",
+    "antigravity",
+    "cursor",
+    "windsurf",
+    "opencode",
+    "dsh",
+    "evals",
+    "developer-tools"
+  ],
+  "author": "Mamdouh Aboammar <shimaozb@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/imMamdouhaboammar/skill-conductor/issues"
+  },
+  "homepage": "https://github.com/imMamdouhaboammar/skill-conductor#readme",
+  "files": [
+    "bin",
+    "skill_conductor",
+    "skills",
+    "assets",
+    ".claude-plugin",
+    ".codex-plugin",
+    ".agents",
+    "Formula",
+    "vercel.json",
+    "api",
+    "public",
+    "install.sh",
+    "install.ps1",
+    "README.md",
+    "LICENSE"
+  ]
+}

@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skill-conductor"
+version = "4.0.0"
+description = "Cross-host Skill engineering toolkit and plugin for ChatGPT, Codex, Claude Code, Antigravity, and compatible agent hosts."
+readme = "README.md"
+authors = [
+  { name = "Mamdouh Aboammar", email = "shimaozb@gmail.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Testing",
+]
+keywords = [
+  "agent-skills",
+  "skills-sh",
+  "chatgpt",
+  "codex",
+  "claude-code",
+  "antigravity",
+  "cursor",
+  "windsurf",
+  "opencode",
+  "evals"
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["pyyaml>=6.0"]
+eval = ["pyyaml>=6.0", "requests>=2.28.0"]
+
+[project.scripts]
+skill-conductor = "skill_conductor.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/imMamdouhaboammar/skill-conductor"
+Repository = "https://github.com/imMamdouhaboammar/skill-conductor"
+Issues = "https://github.com/imMamdouhaboammar/skill-conductor/issues"
+
+[tool.setuptools.packages.find]
+include = ["skill_conductor*"]

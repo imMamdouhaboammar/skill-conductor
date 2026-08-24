@@ -1,0 +1,73 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Build distributions
+        run: |
+          chmod +x bin/skill-conductor
+          mkdir -p dist
+          ./bin/skill-conductor package skills --out dist
+          ./bin/skill-conductor export --out dist/adapters
+          
+          # Build Python wheels & sdist
+          python -m pip install --upgrade build
+          python -m build
+
+          # Compute SHA256 checksums
+          cd dist
+          sha256sum *.* > checksums.txt || shasum -a 256 *.* > checksums.txt
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.skill
+            dist/*.json
+            dist/checksums.txt
+            dist/*.whl
+            dist/*.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+      - name: Publish to npm / Bun (optional if NPM_TOKEN configured)
+        if: env.NPM_TOKEN != ''
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          npm publish --access public || true
+
+      - name: Publish to PyPI (optional if PYPI_API_TOKEN configured)
+        if: env.PYPI_API_TOKEN != ''
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m pip install --upgrade twine
+          twine upload dist/*.whl dist/*.tar.gz || true
