@@ -1,47 +1,25 @@
 {
   "version": 2,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/v1/package/(.*)",
-      "dest": "/api/index.py?package=$1"
+      "source": "/api/v1/package/:package*",
+      "destination": "/api/index.py?package=:package*"
     },
     {
-      "src": "/api/v1/skills/(.*)",
-      "dest": "/api/index.py?skill=$1"
+      "source": "/api/v1/skills/:skill*",
+      "destination": "/api/index.py?skill=:skill*"
     },
     {
-      "src": "/api/skills/(.*)",
-      "dest": "/api/index.py?skill=$1"
+      "source": "/api/skills/:skill*",
+      "destination": "/api/index.py?skill=:skill*"
     },
     {
-      "src": "/api/skills",
-      "dest": "/api/index.py"
+      "source": "/api/skills",
+      "destination": "/api/index.py"
     },
     {
-      "src": "/api/registry",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/install.sh",
-      "dest": "/install.sh",
-      "headers": {
-        "Content-Type": "text/x-shellscript"
-      }
-    },
-    {
-      "src": "/install.ps1",
-      "dest": "/install.ps1",
-      "headers": {
-        "Content-Type": "text/plain"
-      }
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/public/assets/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1"
+      "source": "/api/registry",
+      "destination": "/api/index.py"
     }
   ],
   "headers": [
@@ -54,7 +32,7 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, OPTIONS"
+          "value": "GET, HEAD, POST, OPTIONS"
         },
         {
           "key": "Access-Control-Allow-Headers",
@@ -76,6 +54,15 @@
         {
           "key": "Content-Type",
           "value": "application/json; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/install.sh",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/x-shellscript; charset=utf-8"
         }
       ]
     }
