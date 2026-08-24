@@ -1,9 +1,10 @@
-"""Vercel Serverless Function implementing the Skills.sh registry API."""
+"""Vercel Serverless Function implementing the Skills.sh registry API and catalog."""
 
 from __future__ import annotations
 
 import io
 import json
+import mimetypes
 import sys
 import urllib.parse
 import zipfile
@@ -21,7 +22,7 @@ from skill_conductor.server import get_skill_detail, get_skills_catalog
 class handler(BaseHTTPRequestHandler):
     def _send_cors_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
         self.send_header(
             "Access-Control-Allow-Headers",
             "Content-Type, Authorization, X-Agent-Target",
@@ -32,7 +33,10 @@ class handler(BaseHTTPRequestHandler):
         self._send_cors_headers()
         self.end_headers()
 
-    def do_GET(self) -> None:
+    def do_HEAD(self) -> None:
+        self.do_GET(is_head=True)
+
+    def do_GET(self, is_head: bool = False) -> None:
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
@@ -40,6 +44,51 @@ class handler(BaseHTTPRequestHandler):
         # Check for query parameters (used by Vercel routes)
         package_param = query.get("package", [None])[0]
         skill_param = query.get("skill", [None])[0]
+
+        # 0. Static assets and Landing Page
+        if path in {"", "/", "/index.html"}:
+            html_file = REPO_ROOT / "public" / "index.html"
+            if html_file.is_file():
+                content = html_file.read_bytes()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                if not is_head:
+                    self.wfile.write(content)
+                return
+
+        if path.startswith("/public/") or path.startswith("/assets/"):
+            rel = path.lstrip("/")
+            file_path = REPO_ROOT / rel
+            if not file_path.is_file():
+                file_path = REPO_ROOT / "public" / rel.replace("public/", "")
+            if file_path.is_file():
+                content = file_path.read_bytes()
+                mime, _ = mimetypes.guess_type(str(file_path))
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", mime or "application/octet-stream")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                if not is_head:
+                    self.wfile.write(content)
+                return
+
+        if path in {"/install.sh", "/install.ps1"}:
+            script_file = REPO_ROOT / path.lstrip("/")
+            if script_file.is_file():
+                content = script_file.read_bytes()
+                mime = "text/x-shellscript" if path.endswith(".sh") else "text/plain"
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", f"{mime}; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                if not is_head:
+                    self.wfile.write(content)
+                return
 
         # 1. Package Download Endpoint
         if package_param or path.startswith("/api/v1/package/"):
@@ -50,11 +99,12 @@ class handler(BaseHTTPRequestHandler):
                 self._send_cors_headers()
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(
-                    json.dumps(
-                        {"error": "Skill not found", "skill": skill_name}
-                    ).encode("utf-8")
-                )
+                if not is_head:
+                    self.wfile.write(
+                        json.dumps(
+                            {"error": "Skill not found", "skill": skill_name}
+                        ).encode("utf-8")
+                    )
                 return
 
             # Build in-memory zip archive
@@ -78,7 +128,8 @@ class handler(BaseHTTPRequestHandler):
             )
             self.send_header("Content-Length", str(len(archive_data)))
             self.end_headers()
-            self.wfile.write(archive_data)
+            if not is_head:
+                self.wfile.write(archive_data)
             return
 
         # 2. Individual Skill Detail Endpoint
@@ -101,11 +152,12 @@ class handler(BaseHTTPRequestHandler):
                 self._send_cors_headers()
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(
-                    json.dumps(
-                        {"error": "Skill not found", "skill": skill_name}
-                    ).encode("utf-8")
-                )
+                if not is_head:
+                    self.wfile.write(
+                        json.dumps(
+                            {"error": "Skill not found", "skill": skill_name}
+                        ).encode("utf-8")
+                    )
                 return
 
             resp_data = json.dumps(detail, indent=2).encode("utf-8")
@@ -114,10 +166,11 @@ class handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(resp_data)))
             self.end_headers()
-            self.wfile.write(resp_data)
+            if not is_head:
+                self.wfile.write(resp_data)
             return
 
-        # 3. Catalog / Registry Index Endpoint (/api/skills or /api/registry)
+        # 3. Catalog / Registry Index Endpoint (/api/skills or /api/registry or /skills.json)
         catalog = get_skills_catalog(REPO_ROOT)
         registry_meta = {
             "registry": "Skills.sh Universal Catalog",
@@ -133,4 +186,5 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(resp_data)))
         self.end_headers()
-        self.wfile.write(resp_data)
+        if not is_head:
+            self.wfile.write(resp_data)
